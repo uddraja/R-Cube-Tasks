@@ -1,0 +1,1601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="R Cube Tasks">
+<meta name="application-name" content="R Cube Tasks">
+<meta name="theme-color" content="#4F7EFF">
+<meta name="description" content="R Cube Tasks - Team work allocation and purchase approval tool">
+<link rel="manifest" id="pwa-manifest">
+<title>R Cube Tasks</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  :root{
+    --blue:#4F7EFF;--blue-light:#EEF3FF;
+    --red:#EF4444;--green:#16A34A;--green-light:#F0FDF4;
+    --orange:#F59E0B;--surface:#F7F8FC;--card:#FFFFFF;
+    --border:#E8EBF4;--text:#0F1523;--sub:#64748B;--muted:#94A3B8;
+    --safe-top:env(safe-area-inset-top,0px);--safe-bot:env(safe-area-inset-bottom,0px);
+  }
+  html,body{height:100%;width:100%;font-family:-apple-system,'SF Pro Text','Segoe UI',sans-serif;background:var(--surface);color:var(--text);overflow:hidden;-webkit-tap-highlight-color:transparent;user-select:none;}
+  #app{display:flex;flex-direction:column;height:100%;padding-top:var(--safe-top);padding-bottom:var(--safe-bot);}
+
+  /* Loading */
+  .loading-screen{position:fixed;inset:0;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:999;}
+  .loading-logo{font-size:28px;font-weight:800;letter-spacing:-1px;}
+  .loading-logo span{color:var(--blue);}
+  .loading-spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin 0.8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .loading-text{font-size:13px;color:var(--sub);font-weight:500;}
+
+  /* Sync bar */
+  .sync-bar{background:#fff;border-bottom:1px solid var(--border);padding:4px 16px;display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--muted);flex-shrink:0;}
+  .sync-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);flex-shrink:0;}
+  .sync-dot.live{background:#16A34A;animation:pulse 2s infinite;}
+  .sync-dot.err{background:#EF4444;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+
+  /* Header */
+  .header{background:var(--card);border-bottom:1px solid var(--border);padding:14px 16px 10px;flex-shrink:0;}
+  .header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+  .logo{font-size:20px;font-weight:800;letter-spacing:-0.8px;}
+  .logo span{color:var(--blue);}
+  .header-actions{display:flex;gap:8px;}
+  .btn-icon{width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border);background:var(--card);display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;}
+  .btn-icon:active{background:var(--surface);}
+  .btn-primary{height:36px;padding:0 14px;border-radius:10px;border:none;background:var(--blue);color:#fff;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit;}
+  .btn-primary:active{opacity:0.85;}
+
+  /* Tabs */
+  .tabs{display:flex;gap:4px;}
+  .tab{flex:1;padding:7px 0;border-radius:9px;border:none;background:transparent;font-size:11px;font-weight:600;color:var(--sub);cursor:pointer;font-family:inherit;transition:all 0.15s;}
+  .tab.active{background:var(--blue-light);color:var(--blue);}
+
+  /* Scroll */
+  .scroll-area{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 14px 32px;}
+
+  /* Stats */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;}
+  .stat-card{background:var(--card);border-radius:12px;border:1px solid var(--border);padding:12px 6px;text-align:center;}
+  .stat-num{font-size:22px;font-weight:800;line-height:1;margin-bottom:3px;}
+  .stat-label{font-size:10px;color:var(--sub);font-weight:600;line-height:1.2;}
+
+  /* Filters */
+  .filters{display:flex;gap:8px;margin-bottom:12px;}
+  .filter-select{flex:1;padding:8px 10px;border-radius:9px;border:1.5px solid var(--border);background:var(--card);font-size:13px;font-weight:500;color:var(--text);font-family:inherit;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394A3B8' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px;}
+
+  /* Pills */
+  .filter-pills{display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;padding-bottom:2px;}
+  .filter-pills::-webkit-scrollbar{display:none;}
+  .pill{padding:6px 14px;border-radius:99px;border:1.5px solid var(--border);background:var(--card);font-size:12px;font-weight:600;color:var(--sub);cursor:pointer;white-space:nowrap;font-family:inherit;}
+  .pill.active{background:var(--blue);color:#fff;border-color:var(--blue);}
+
+  /* Task cards */
+  .task-card{background:var(--card);border-radius:13px;border:1px solid var(--border);padding:14px;margin-bottom:10px;}
+  .task-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;}
+  .task-title{font-size:15px;font-weight:700;line-height:1.3;flex:1;margin-right:8px;}
+  .btn-del{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;line-height:1;flex-shrink:0;padding:0 2px;font-family:inherit;}
+  .btn-del:active{color:var(--red);}
+  .task-meta{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;align-items:center;}
+  .badge{font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;}
+  .badge-project{background:var(--surface);color:var(--sub);}
+  .hours-badge{font-size:11px;font-weight:700;color:var(--sub);}
+  .task-selects{display:flex;gap:8px;}
+  .task-select{flex:1;padding:7px 8px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);font-size:12px;font-weight:600;color:var(--text);font-family:inherit;appearance:none;}
+  .s-not{background:#F1F3F9;color:#64748B;}
+  .s-in{background:#EFF6FF;color:#3B82F6;}
+  .s-done{background:#F0FDF4;color:#16A34A;}
+  .s-blk{background:#FFF1F2;color:#E11D48;}
+
+  /* Task progress & notes */
+  .task-progress-row{display:flex;align-items:center;gap:8px;margin-top:10px;}
+  .progress-bar-bg{flex:1;height:6px;background:var(--border);border-radius:99px;overflow:hidden;}
+  .progress-bar-fill{height:100%;border-radius:99px;background:var(--blue);transition:width 0.3s;}
+  .progress-pct{font-size:12px;font-weight:800;color:var(--blue);min-width:32px;text-align:right;}
+  .task-bottom-row{display:flex;align-items:center;justify-content:space-between;margin-top:8px;gap:8px;}
+  .btn-note{display:flex;align-items:center;gap:4px;padding:6px 10px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);font-size:12px;font-weight:600;color:var(--sub);cursor:pointer;font-family:inherit;white-space:nowrap;}
+  .btn-note.has-note{border-color:#F59E0B;color:#D97706;background:#FFFBEB;}
+  .task-time{font-size:11px;color:var(--muted);font-weight:500;}
+  .progress-slider{width:100%;accent-color:var(--blue);cursor:pointer;}
+  .slider-row{display:flex;align-items:center;gap:10px;}
+  .slider-val{font-size:16px;font-weight:800;color:var(--blue);min-width:42px;}
+
+  /* Purchase cards */
+  .pr-card{background:var(--card);border-radius:14px;border:1px solid var(--border);padding:16px;margin-bottom:12px;}
+  .pr-card.pr-pending{border-left:4px solid var(--orange);}
+  .pr-card.pr-approved{border-left:4px solid var(--green);}
+  .pr-card.pr-rejected{border-left:4px solid var(--red);}
+  .pr-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px;}
+  .pr-item-name{font-size:16px;font-weight:800;flex:1;margin-right:8px;line-height:1.3;}
+  .pr-price-big{font-size:18px;font-weight:800;color:var(--text);white-space:nowrap;}
+  .pr-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px;}
+  .pr-badge{font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px;background:var(--surface);color:var(--sub);}
+  .pr-flow{display:flex;align-items:center;gap:6px;margin-bottom:10px;padding:8px 10px;background:var(--surface);border-radius:9px;}
+  .pr-flow-name{font-size:12px;font-weight:600;color:var(--text);}
+  .pr-flow-role{font-size:10px;color:var(--muted);}
+  .pr-arrow{font-size:14px;color:var(--muted);margin:0 2px;}
+  .pr-notes-box{font-size:12px;color:var(--sub);background:var(--surface);border-radius:8px;padding:8px 10px;margin-bottom:10px;line-height:1.5;}
+  .pr-actions{display:flex;gap:8px;}
+  .btn-approve{flex:1;padding:11px;border-radius:10px;border:none;background:var(--green-light);color:var(--green);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;}
+  .btn-reject{flex:1;padding:11px;border-radius:10px;border:none;background:#FFF1F2;color:#E11D48;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;}
+  .pr-decided{display:flex;align-items:center;gap:7px;padding:11px 12px;border-radius:10px;font-size:13px;font-weight:700;}
+  .pr-decided.approved{background:var(--green-light);color:var(--green);}
+  .pr-decided.rejected{background:#FFF1F2;color:#E11D48;}
+  .pr-reject-reason{font-size:12px;font-weight:400;margin-left:auto;color:var(--sub);}
+  .pr-received-btn{width:100%;margin-top:8px;padding:10px;border-radius:10px;border:1.5px dashed #16A34A;background:transparent;color:#16A34A;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;}
+  .pr-received-box{margin-top:8px;display:flex;align-items:center;gap:8px;padding:10px 12px;background:#F0FDF4;border-radius:10px;border:1px solid #BBF7D0;}
+  .pr-received-icon{font-size:18px;flex-shrink:0;}
+  .pr-received-info{flex:1;}
+  .pr-received-label{font-size:11px;font-weight:700;color:#16A34A;text-transform:uppercase;letter-spacing:.04em;}
+  .pr-received-detail{font-size:13px;font-weight:600;color:var(--text);margin-top:1px;}
+
+  /* Team */
+  .emp-card{background:var(--card);border-radius:13px;border:1px solid var(--border);padding:16px;margin-bottom:10px;}
+  .emp-top{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
+  .avatar{border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;flex-shrink:0;}
+  .emp-info{flex:1;}
+  .emp-name{font-size:16px;font-weight:700;}
+  .emp-role{font-size:12px;color:var(--sub);margin-top:1px;}
+  .emp-hours{text-align:right;}
+  .emp-hours-num{font-size:22px;font-weight:800;line-height:1;}
+  .emp-hours-label{font-size:10px;color:var(--muted);}
+  .load-bar-bg{height:5px;background:var(--surface);border-radius:99px;overflow:hidden;margin-bottom:12px;}
+  .load-bar-fill{height:100%;border-radius:99px;transition:width 0.4s;}
+  .task-chips{display:flex;flex-wrap:wrap;gap:6px;}
+  .task-chip{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:5px;}
+  .chip-status{font-size:10px;font-weight:700;padding:2px 5px;border-radius:5px;}
+  .section-label{font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.05em;margin:10px 0 6px;}
+
+  /* Empty */
+  .empty{text-align:center;padding:40px 20px;color:var(--muted);font-size:14px;line-height:1.6;}
+  .empty-icon{font-size:36px;margin-bottom:8px;}
+
+  /* Modal */
+  .overlay{position:fixed;inset:0;background:rgba(10,15,30,0.5);display:flex;align-items:flex-end;z-index:200;padding-bottom:var(--safe-bot);}
+  .modal{background:var(--card);border-radius:22px 22px 0 0;padding:24px 20px 28px;width:100%;max-height:90vh;overflow-y:auto;animation:slideUp 0.22s ease;}
+  @keyframes slideUp{from{transform:translateY(100%);opacity:0;}to{transform:translateY(0);opacity:1;}}
+  .modal-handle{width:36px;height:4px;background:var(--border);border-radius:99px;margin:0 auto 20px;}
+  .modal-title{font-size:18px;font-weight:800;margin-bottom:18px;}
+  .form-field{margin-bottom:14px;}
+  .form-label{font-size:11px;font-weight:700;color:var(--sub);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;display:block;}
+  .form-input,.form-select{width:100%;padding:11px 13px;border-radius:11px;border:1.5px solid var(--border);background:var(--surface);font-size:15px;color:var(--text);font-family:inherit;outline:none;appearance:none;}
+  .form-input:focus,.form-select:focus{border-color:var(--blue);}
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .modal-actions{display:flex;gap:10px;margin-top:6px;}
+  .btn-cancel{flex:1;padding:13px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface);font-size:15px;font-weight:700;color:var(--sub);cursor:pointer;font-family:inherit;}
+  .btn-confirm{flex:2;padding:13px;border-radius:12px;border:none;background:var(--blue);color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;}
+
+
+  /* Report tab */
+  .report-filters{background:var(--card);border-radius:13px;border:1px solid var(--border);padding:14px;margin-bottom:14px;}
+  .report-filters-title{font-size:12px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;}
+  .report-filter-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;}
+  .report-filter-row.full{grid-template-columns:1fr;}
+  .report-section{margin-bottom:20px;}
+  .report-section-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+  .report-section-title{font-size:13px;font-weight:800;color:var(--text);text-transform:uppercase;letter-spacing:.05em;}
+  .report-count{font-size:12px;font-weight:600;color:var(--sub);background:var(--surface);padding:3px 10px;border-radius:99px;}
+  .report-list-item{background:var(--card);border-radius:11px;border:1px solid var(--border);padding:12px 14px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px;}
+  .report-list-item.rl-pending{border-left:3px solid #F59E0B;}
+  .report-list-item.rl-approved{border-left:3px solid #16A34A;}
+  .report-list-item.rl-rejected{border-left:3px solid #EF4444;}
+  .report-item-main{flex:1;min-width:0;}
+  .report-item-title{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .report-item-meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:5px;align-items:center;}
+  .report-item-date{font-size:11px;color:var(--muted);font-weight:500;}
+  .report-item-right{text-align:right;flex-shrink:0;}
+  .report-pct{font-size:15px;font-weight:800;}
+  .report-price{font-size:14px;font-weight:800;color:var(--text);}
+  .report-mini-bar{width:52px;height:5px;background:var(--border);border-radius:99px;overflow:hidden;margin-top:4px;margin-left:auto;}
+  .report-mini-fill{height:100%;border-radius:99px;}
+  .report-empty{text-align:center;padding:28px;color:var(--muted);font-size:13px;}
+  .report-generate-btn{width:100%;padding:13px;border-radius:12px;border:none;background:var(--blue);color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:16px;}
+  .report-generate-btn:active{opacity:0.85;}
+  .report-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;}
+  .report-sum-card{background:var(--card);border-radius:11px;border:1px solid var(--border);padding:10px 8px;text-align:center;}
+  .report-sum-num{font-size:20px;font-weight:800;line-height:1;}
+  .report-sum-label{font-size:10px;color:var(--sub);font-weight:600;margin-top:2px;}
+
+
+  /* Expenses tab */
+  .exp-card{background:var(--card);border-radius:13px;border:1px solid var(--border);padding:14px;margin-bottom:10px;border-left:4px solid #F59E0B;}
+  .exp-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px;}
+  .exp-title{font-size:15px;font-weight:700;flex:1;margin-right:8px;}
+  .exp-amount{font-size:20px;font-weight:800;color:#D97706;white-space:nowrap;}
+  .exp-meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px;}
+  .exp-cat{font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;background:#FFFBEB;color:#D97706;}
+  .exp-who{display:flex;align-items:center;gap:6px;padding:7px 10px;background:var(--surface);border-radius:8px;}
+  .exp-who-name{font-size:12px;font-weight:600;}
+  .exp-who-role{font-size:10px;color:var(--muted);}
+  .exp-summary-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;}
+  .exp-sum-card{background:var(--card);border-radius:11px;border:1px solid var(--border);padding:10px 6px;text-align:center;}
+  .exp-sum-num{font-size:18px;font-weight:800;line-height:1;}
+  .exp-sum-label{font-size:10px;color:var(--sub);font-weight:600;margin-top:2px;}
+
+
+
+  .member-bal-section{margin-bottom:14px;}
+  .member-bal-card{background:var(--card);border-radius:12px;border:1px solid var(--border);padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;}
+  .member-bal-info{flex:1;min-width:0;}
+  .member-bal-name{font-size:14px;font-weight:700;}
+  .member-bal-role{font-size:11px;color:var(--muted);}
+  .member-bal-nums{display:flex;gap:10px;margin-top:5px;flex-wrap:wrap;}
+  .member-bal-num{font-size:11px;font-weight:600;}
+  .member-bal-right{text-align:right;flex-shrink:0;}
+  .member-bal-amount{font-size:17px;font-weight:800;line-height:1;}
+  .member-bal-tag{font-size:10px;font-weight:700;margin-top:2px;}
+  .member-bal-bar-bg{height:4px;background:var(--border);border-radius:99px;overflow:hidden;margin-top:6px;}
+  .member-bal-bar-fill{height:100%;border-radius:99px;}
+
+  .recv-card{background:var(--card);border-radius:13px;border:1px solid var(--border);padding:14px;margin-bottom:10px;border-left:4px solid #16A34A;}
+  .recv-amount{font-size:20px;font-weight:800;color:#16A34A;white-space:nowrap;}
+  .exp-toggle-row{display:flex;gap:6px;margin-bottom:12px;}
+  .exp-toggle{flex:1;padding:8px 6px;border-radius:9px;border:1.5px solid var(--border);background:var(--card);font-size:12px;font-weight:700;color:var(--sub);cursor:pointer;font-family:inherit;text-align:center;}
+  .exp-toggle.active-exp{background:#FFFBEB;color:#D97706;border-color:#F59E0B;}
+  .exp-toggle.active-recv{background:#F0FDF4;color:#16A34A;border-color:#16A34A;}
+  .exp-toggle.active-all{background:var(--blue-light);color:var(--blue);border-color:var(--blue);}
+  .balance-bar{background:var(--card);border-radius:13px;border:1px solid var(--border);padding:14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:10px;}
+  .bal-item{text-align:center;flex:1;}
+  .bal-num{font-size:17px;font-weight:800;line-height:1;}
+  .bal-label{font-size:10px;color:var(--sub);font-weight:600;margin-top:2px;}
+  .bal-divider{width:1px;background:var(--border);height:36px;}
+
+  /* Toast */
+  .toast{position:fixed;bottom:calc(20px + var(--safe-bot));left:50%;transform:translateX(-50%) translateY(80px);background:#1A1D23;color:#fff;padding:10px 20px;border-radius:99px;font-size:13px;font-weight:600;z-index:300;transition:transform 0.25s,opacity 0.25s;opacity:0;white-space:nowrap;pointer-events:none;}
+  .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
+</style>
+</head>
+<body>
+
+<!-- Loading screen -->
+<div class="loading-screen" id="loading">
+  <div class="loading-logo">R Cube <span>Tasks</span></div>
+  <div class="loading-spinner"></div>
+  <div class="loading-text">Connecting to server...</div>
+</div>
+
+<div id="app" style="display:none">
+  <div class="header">
+    <div class="header-top">
+      <div class="logo">R Cube <span>Tasks</span></div>
+      <div class="header-actions">
+        <button class="btn-icon" onclick="openAddEmployee()">👤</button>
+        <button class="btn-primary" id="main-add-btn" onclick="window.handleAddBtn()">+ Task</button>
+      </div>
+    </div>
+    <div class="tabs">
+      <button class="tab active" id="tab-tasks" onclick="switchTab('tasks')">📋 Tasks</button>
+      <button class="tab" id="tab-purchases" onclick="switchTab('purchases')">🛒 Approvals</button>
+      <button class="tab" id="tab-team" onclick="switchTab('team')">👥 Team</button>
+      <button class="tab" id="tab-report" onclick="switchTab('report')">📊 Report</button>
+      <button class="tab" id="tab-expenses" onclick="switchTab('expenses')">💰 Expenses</button>
+    </div>
+  </div>
+  <div class="sync-bar">
+    <div class="sync-dot" id="sync-dot"></div>
+    <span id="sync-label">Connecting...</span>
+  </div>
+  <div class="scroll-area" id="main-content"></div>
+</div>
+
+<!-- Add Task Modal -->
+<div class="overlay" id="modal-task" style="display:none" onclick="closeModalOnOverlay(event,'modal-task')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">New Task</div>
+    <div class="form-field">
+      <label class="form-label">Task title</label>
+      <select class="form-select" id="t-title-select" onchange="window.handleTitleSelect(this.value)">
+        <option value="">Select task...</option>
+      </select>
+      <input class="form-input" id="t-title" placeholder="Enter new task name" type="text" style="display:none;margin-top:8px">
+    </div>
+    <div class="form-field">
+      <label class="form-label">Project</label>
+      <select class="form-select" id="t-project-select" onchange="window.handleProjectSelect(this.value)">
+        <option value="">Select project...</option>
+      </select>
+      <input class="form-input" id="t-project-new" placeholder="Enter new project name" type="text" style="display:none;margin-top:8px">
+    </div>
+    <div class="form-row form-field">
+      <div><label class="form-label">Hours</label><input class="form-input" id="t-hours" placeholder="0" type="number" min="0"></div>
+      <div><label class="form-label">Status</label>
+        <select class="form-select" id="t-status">
+          <option>Not Started</option><option>In Progress</option><option>Done</option><option>Blocked</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-field">
+      <label class="form-label">Assign to</label>
+      <select class="form-select" id="t-assignee">
+        <option value="">Unassigned</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-task')">Cancel</button>
+      <button class="btn-confirm" onclick="window.saveTask()">Add Task</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Employee Modal -->
+<div class="overlay" id="modal-emp" style="display:none" onclick="closeModalOnOverlay(event,'modal-emp')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">New Employee</div>
+    <div class="form-field"><label class="form-label">Full name</label><input class="form-input" id="e-name" placeholder="e.g. Ravi Kumar" type="text"></div>
+    <div class="form-field"><label class="form-label">Role</label><input class="form-input" id="e-role" placeholder="e.g. Welder, Fabricator" type="text"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-emp')">Cancel</button>
+      <button class="btn-confirm" onclick="saveEmployee()">Add Employee</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Purchase Modal -->
+<div class="overlay" id="modal-purchase" style="display:none" onclick="closeModalOnOverlay(event,'modal-purchase')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Purchase Request</div>
+    <div class="form-field"><label class="form-label">Item name</label><input class="form-input" id="p-item" placeholder="e.g. Welding rods" type="text"></div>
+    <div class="form-row form-field">
+      <div><label class="form-label">Quantity</label><input class="form-input" id="p-qty" placeholder="1" type="number" min="1"></div>
+      <div><label class="form-label">Price (₹)</label><input class="form-input" id="p-price" placeholder="0" type="number" min="0"></div>
+    </div>
+    <div class="form-field"><label class="form-label">Vendor / Supplier</label><input class="form-input" id="p-vendor" placeholder="e.g. Local store" type="text"></div>
+    <div class="form-field"><label class="form-label">Requested by</label><select class="form-select" id="p-requester"></select></div>
+    <div class="form-field"><label class="form-label">Send approval to</label><select class="form-select" id="p-approver"></select></div>
+    <div class="form-field"><label class="form-label">Notes / Reason</label><input class="form-input" id="p-notes" placeholder="Why is this needed?" type="text"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-purchase')">Cancel</button>
+      <button class="btn-confirm" onclick="savePurchase()">Submit Request</button>
+    </div>
+  </div>
+</div>
+
+<!-- Mark Received Modal -->
+<div class="overlay" id="modal-received" style="display:none" onclick="closeModalOnOverlay(event,'modal-received')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📦 Mark as Received</div>
+    <div class="form-field"><label class="form-label">Received by</label><select class="form-select" id="r-receiver"></select></div>
+    <div class="form-field"><label class="form-label">Date received</label><input class="form-input" id="r-date" type="date"></div>
+    <div class="form-field"><label class="form-label">Notes (optional)</label><input class="form-input" id="r-notes" placeholder="e.g. Partial delivery" type="text"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-received')">Cancel</button>
+      <button class="btn-confirm" style="background:#16A34A" onclick="confirmReceived()">✓ Confirm Receipt</button>
+    </div>
+  </div>
+</div>
+
+<!-- Reject Modal -->
+<div class="overlay" id="modal-reject" style="display:none" onclick="closeModalOnOverlay(event,'modal-reject')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Reason for rejection</div>
+    <div class="form-field"><label class="form-label">Comment (optional)</label><input class="form-input" id="reject-comment" placeholder="e.g. Over budget" type="text"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-reject')">Cancel</button>
+      <button class="btn-confirm" style="background:#E11D48" onclick="confirmReject()">Reject Request</button>
+    </div>
+  </div>
+</div>
+
+<!-- Note Modal -->
+<div class="overlay" id="modal-note" style="display:none" onclick="closeModalOnOverlay(event,'modal-note')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="note-modal-title">Task Note</div>
+    <div class="form-field">
+      <label class="form-label">Note</label>
+      <textarea class="form-input" id="note-text" placeholder="Add a note, update or comment..." rows="4" style="resize:none;line-height:1.5"></textarea>
+    </div>
+    <div class="form-field">
+      <label class="form-label">Progress</label>
+      <div class="slider-row">
+        <input class="progress-slider" type="range" min="0" max="100" step="5" id="note-progress" oninput="document.getElementById('note-progress-val').textContent=this.value+'%'">
+        <div class="slider-val" id="note-progress-val">0%</div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-note')">Cancel</button>
+      <button class="btn-confirm" onclick="window.saveNote()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Expense Modal -->
+<div class="overlay" id="modal-expense" style="display:none" onclick="closeModalOnOverlay(event,'modal-expense')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">💰 Add Expense</div>
+    <div class="form-field">
+      <label class="form-label">Expense type</label>
+      <select class="form-select" id="ex-type-select" onchange="window.handleExpTypeSelect(this.value)">
+        <option value="">Select expense...</option>
+      </select>
+      <input class="form-input" id="ex-type-new" placeholder="Enter new expense type" type="text" style="display:none;margin-top:8px">
+    </div>
+    <div class="form-row form-field">
+      <div><label class="form-label">Amount (₹)</label><input class="form-input" id="ex-amount" placeholder="0" type="number" min="0"></div>
+      <div><label class="form-label">Date</label><input class="form-input" id="ex-date" type="date"></div>
+    </div>
+    <div class="form-field">
+      <label class="form-label">Project</label>
+      <select class="form-select" id="ex-project-select" onchange="window.handleExpProjectSelect(this.value)">
+        <option value="">No project</option>
+      </select>
+      <input class="form-input" id="ex-project-new" placeholder="Enter new project name" type="text" style="display:none;margin-top:8px">
+    </div>
+    <div class="form-field">
+      <label class="form-label">Spent by</label>
+      <select class="form-select" id="ex-member">
+        <option value="">Select member...</option>
+      </select>
+    </div>
+    <div class="form-field">
+      <label class="form-label">Notes (optional)</label>
+      <input class="form-input" id="ex-notes" placeholder="e.g. Fuel for site visit" type="text">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-expense')">Cancel</button>
+      <button class="btn-confirm" style="background:#D97706" onclick="window.saveExpense()">Add Expense</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Add Received Amount Modal -->
+<div class="overlay" id="modal-recv-amount" style="display:none" onclick="closeModalOnOverlay(event,'modal-recv-amount')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">💵 Amount Received</div>
+    <div class="form-field">
+      <label class="form-label">Received from</label>
+      <select class="form-select" id="ra-member">
+        <option value="">Select member...</option>
+      </select>
+    </div>
+    <div class="form-row form-field">
+      <div><label class="form-label">Amount (₹)</label><input class="form-input" id="ra-amount" placeholder="0" type="number" min="0"></div>
+      <div><label class="form-label">Date</label><input class="form-input" id="ra-date" type="date"></div>
+    </div>
+    <div class="form-field">
+      <label class="form-label">Project</label>
+      <select class="form-select" id="ra-project-select" onchange="window.handleRaProjectSelect(this.value)">
+        <option value="">No project</option>
+      </select>
+      <input class="form-input" id="ra-project-new" placeholder="Enter new project name" type="text" style="display:none;margin-top:8px">
+    </div>
+    <div class="form-field">
+      <label class="form-label">Purpose / Notes</label>
+      <input class="form-input" id="ra-notes" placeholder="e.g. Salary advance, Site payment" type="text">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-recv-amount')">Cancel</button>
+      <button class="btn-confirm" style="background:#16A34A" onclick="window.saveReceivedAmount()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBFHgXszGYHcZ7AHs3kFDNRHd_nbp6LpAc",
+  authDomain: "r-cube-tasks-e80c3.firebaseapp.com",
+  projectId: "r-cube-tasks-e80c3",
+  storageBucket: "r-cube-tasks-e80c3.firebasestorage.app",
+  messagingSenderId: "323260093497",
+  appId: "1:323260093497:web:137094ad342f25b8ff29e8"
+};
+
+const fireApp = initializeApp(firebaseConfig);
+const db = getFirestore(fireApp);
+
+const COLORS = ["#4F7EFF","#FF6B6B","#FFB347","#6BCB77","#C77DFF","#00C9A7","#FF8FAB","#06D6A0","#118AB2","#F4A261"];
+const STATUS_CLASS = {"Not Started":"s-not","In Progress":"s-in","Done":"s-done","Blocked":"s-blk"};
+
+let data = { employees: [], tasks: [], purchases: [], expenses: [], receivedAmounts: [] };
+let currentTab = "tasks";
+let filterAssignee = "all";
+let filterStatus = "all";
+let prFilter = "all";
+let pendingRejectId = null;
+let pendingReceivedId = null;
+let listenersReady = 0;
+let expFilter = 'all';
+let expMemberFilter = 'all';
+let expView = 'all'; // all | expenses | received
+
+function setSyncStatus(state) {
+  const dot = document.getElementById("sync-dot");
+  const lbl = document.getElementById("sync-label");
+  if (state === "live") { dot.className = "sync-dot live"; lbl.textContent = "Live — synced across all devices"; }
+  else if (state === "err") { dot.className = "sync-dot err"; lbl.textContent = "Connection error"; }
+  else { dot.className = "sync-dot"; lbl.textContent = "Connecting..."; }
+}
+
+function checkReady() {
+  listenersReady++;
+  if (listenersReady >= 3) {
+    document.getElementById("loading").style.display = "none";
+    document.getElementById("app").style.display = "flex";
+    setSyncStatus("live");
+    render();
+  }
+}
+
+// Real-time listeners
+onSnapshot(query(collection(db, "employees"), orderBy("createdAt")), snap => {
+  data.employees = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  checkReady(); render();
+}, () => { setSyncStatus("err"); checkReady(); });
+
+onSnapshot(query(collection(db, "tasks"), orderBy("createdAt")), snap => {
+  data.tasks = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  checkReady(); render();
+}, () => { setSyncStatus("err"); checkReady(); });
+
+onSnapshot(query(collection(db, "purchases"), orderBy("createdAt")), snap => {
+  data.purchases = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  checkReady(); render();
+}, () => { setSyncStatus("err"); checkReady(); });
+
+onSnapshot(query(collection(db, "expenses"), orderBy("createdAt")), snap => {
+  data.expenses = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  render();
+}, () => {});
+
+onSnapshot(query(collection(db, "received_amounts"), orderBy("createdAt")), snap => {
+  data.receivedAmounts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  render();
+}, () => {});
+
+// ---- HELPERS ----
+function avatarDiv(emp, size=44) {
+  const ini = (emp.name||"?").split(" ").map(n=>n[0]).join("").slice(0,2).toUpperCase();
+  return `<div class="avatar" style="width:${size}px;height:${size}px;background:${emp.color||'#4F7EFF'};font-size:${Math.round(size*0.36)}px">${ini}</div>`;
+}
+function esc(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+function fmtDate(d){if(!d)return"";const dt=new Date(d+"T00:00:00");return dt.toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"});}
+function showToast(msg){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2200);}
+function closeModal(id){document.getElementById(id).style.display="none";}
+function closeModalOnOverlay(e,id){if(e.target===document.getElementById(id))closeModal(id);}
+window.closeModal=closeModal; window.closeModalOnOverlay=closeModalOnOverlay;
+
+// ---- TAB ----
+window.switchTab = function(tab) {
+  currentTab = tab;
+  ["tasks","purchases","team","report","expenses"].forEach(t=>document.getElementById("tab-"+t).classList.toggle("active",t===tab));
+  document.getElementById("main-add-btn").textContent = tab==="purchases" ? "+ Request" : tab==="report" ? "⬇ Export" : tab==="expenses" ? "+ Expense" : "+ Task";
+  document.getElementById("main-add-btn").onclick = tab==="report" ? window.exportReport : window.handleAddBtn;
+  render();
+};
+window.handleAddBtn = function() { currentTab==="purchases" ? openAddPurchase() : currentTab==="expenses" ? window.showExpenseOptions() : openAddTask(); };
+
+// ---- RENDER ----
+function render() {
+  if (!document.getElementById("app") || document.getElementById("app").style.display==="none") return;
+  if (currentTab==="tasks") renderTasks();
+  else if (currentTab==="purchases") renderPurchases();
+  else if (currentTab==="report") renderReport();
+  else if (currentTab==="expenses") renderExpenses();
+  else renderTeam();
+}
+
+function renderTasks() {
+  const c = document.getElementById("main-content");
+  const tasks = data.tasks.filter(t => {
+    if (filterAssignee!=="all" && t.assigneeId!==filterAssignee) return false;
+    if (filterStatus!=="all" && t.status!==filterStatus) return false;
+    return true;
+  });
+  const stats = `<div class="stats">
+    <div class="stat-card"><div class="stat-num" style="color:#4F7EFF">${data.tasks.length}</div><div class="stat-label">Total</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:#3B82F6">${data.tasks.filter(t=>t.status==="In Progress").length}</div><div class="stat-label">Active</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:#16A34A">${data.tasks.filter(t=>t.status==="Done").length}</div><div class="stat-label">Done</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:#C77DFF">${data.employees.length}</div><div class="stat-label">People</div></div>
+  </div>`;
+  const filters = `<div class="filters">
+    <select class="filter-select" onchange="window.setFilterAssignee(this.value)">
+      <option value="all">All People</option>
+      ${data.employees.map(e=>`<option value="${e.id}" ${filterAssignee===e.id?"selected":""}>${e.name.split(" ")[0]}</option>`).join("")}
+    </select>
+    <select class="filter-select" onchange="window.setFilterStatus(this.value)">
+      <option value="all">All Status</option>
+      ${["Not Started","In Progress","Done","Blocked"].map(s=>`<option value="${s}" ${filterStatus===s?"selected":""}>${s}</option>`).join("")}
+    </select>
+  </div>`;
+  const list = tasks.length===0
+    ? `<div class="empty"><div class="empty-icon">📭</div>No tasks here.<br>Tap <strong>+ Task</strong> to add one.</div>`
+    : tasks.map(t=>{
+        const sc=STATUS_CLASS[t.status]||"s-not";
+        const pct=Number(t.progress||0);
+        const pctColor=pct>=100?"#16A34A":pct>=50?"#4F7EFF":"#F59E0B";
+        const hasNote=!!(t.note&&t.note.trim());
+        const updatedAt=t.updatedAt?.seconds?new Date(t.updatedAt.seconds*1000).toLocaleString("en-IN",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):"";
+        return `<div class="task-card">
+          <div class="task-top"><div class="task-title">${esc(t.title)}</div><button class="btn-del" onclick="window.deleteTask('${t.id}')">✕</button></div>
+          <div class="task-meta">
+            ${t.project?`<span class="badge badge-project">${esc(t.project)}</span>`:""}
+            <span class="hours-badge">${t.hours||0}h</span>
+            <span class="badge ${sc}">${t.status}</span>
+          </div>
+          <div class="task-progress-row">
+            <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${pct}%;background:${pctColor}"></div></div>
+            <div class="progress-pct" style="color:${pctColor}">${pct}%</div>
+          </div>
+          ${hasNote?`<div style="font-size:12px;color:#D97706;background:#FFFBEB;border-radius:8px;padding:7px 10px;margin-top:8px;line-height:1.5">📝 ${esc(t.note)}</div>`:""}
+          <div class="task-selects" style="margin-top:8px">
+            <select class="task-select" onchange="window.updateAssignee('${t.id}',this.value)">
+              <option value="">Unassigned</option>
+              ${data.employees.map(e=>`<option value="${e.id}" ${t.assigneeId===e.id?"selected":""}>${e.name.split(" ")[0]}</option>`).join("")}
+            </select>
+            <select class="task-select" onchange="window.updateStatus('${t.id}',this.value)">
+              ${["Not Started","In Progress","Done","Blocked"].map(s=>`<option value="${s}" ${t.status===s?"selected":""}>${s}</option>`).join("")}
+            </select>
+          </div>
+          <div class="task-bottom-row">
+            <button class="btn-note ${hasNote?'has-note':''}" onclick="window.openNote('${t.id}')">📝 ${hasNote?"Edit Note":"Add Note"}</button>
+            ${updatedAt?`<span class="task-time">🕐 ${updatedAt}</span>`:""}
+          </div>
+        </div>`;
+      }).join("");
+  c.innerHTML = stats + filters + list;
+}
+
+function renderPurchases() {
+  const c = document.getElementById("main-content");
+  const purchases = data.purchases||[];
+  const pending=purchases.filter(p=>p.status==="Pending").length;
+  const approved=purchases.filter(p=>p.status==="Approved").length;
+  const rejected=purchases.filter(p=>p.status==="Rejected").length;
+  const received=purchases.filter(p=>p.receivedAt).length;
+  const totalVal=purchases.filter(p=>p.status==="Approved").reduce((s,p)=>s+Number(p.price||0)*Number(p.qty||1),0);
+  const stats=`<div class="stats">
+    <div class="stat-card"><div class="stat-num" style="color:#F59E0B">${pending}</div><div class="stat-label">Pending</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:#16A34A">${approved}</div><div class="stat-label">Approved</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:#4F7EFF">${received}</div><div class="stat-label">Received</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:#7C3AED;font-size:14px">₹${totalVal>=1000?(totalVal/1000).toFixed(1)+"k":totalVal}</div><div class="stat-label">Approved ₹</div></div>
+  </div>`;
+  const pills=`<div class="filter-pills">
+    ${["all","Pending","Approved","Rejected","Received"].map(f=>`<button class="pill ${prFilter===f?"active":""}" onclick="window.setPrFilter('${f}')">${f==="all"?"All":f}</button>`).join("")}
+  </div>`;
+  const filtered=prFilter==="Received"?purchases.filter(p=>p.receivedAt):prFilter==="all"?purchases:purchases.filter(p=>p.status===prFilter);
+  const sorted=[...filtered].sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+  const list=sorted.length===0
+    ?`<div class="empty"><div class="empty-icon">🛒</div>${purchases.length===0?"No purchase requests yet.<br>Tap <strong>+ Request</strong> to submit one.":"No "+prFilter.toLowerCase()+" requests."}</div>`
+    :sorted.map(p=>{
+        const req=data.employees.find(e=>e.id===p.requesterId);
+        const apr=data.employees.find(e=>e.id===p.approverId);
+        const isPending=p.status==="Pending";
+        const cls=p.status==="Pending"?"pr-pending":p.status==="Approved"?"pr-approved":"pr-rejected";
+        const flow=`<div class="pr-flow">
+          ${req?`${avatarDiv(req,26)}<div><div class="pr-flow-name">${esc(req.name.split(" ")[0])}</div><div class="pr-flow-role">Requester</div></div>`:`<div style="font-size:12px;color:var(--muted)">Unknown</div>`}
+          <div class="pr-arrow">→</div>
+          ${apr?`${avatarDiv(apr,26)}<div><div class="pr-flow-name">${esc(apr.name.split(" ")[0])}</div><div class="pr-flow-role">Approver</div></div>`:`<div style="font-size:12px;color:var(--muted)">Unknown</div>`}
+        </div>`;
+        const receivedHTML=p.status==="Approved"?(p.receivedAt
+          ?`<div class="pr-received-box"><div class="pr-received-icon">📦</div><div class="pr-received-info"><div class="pr-received-label">Material Received</div><div class="pr-received-detail">${fmtDate(p.receivedAt)}${p.receivedBy?" · "+esc(p.receivedBy):""}</div>${p.receivedNotes?`<div style="font-size:11px;color:var(--sub);margin-top:2px">${esc(p.receivedNotes)}</div>`:""}</div><button class="btn-del" onclick="window.undoReceived('${p.id}')">↩</button></div>`
+          :`<button class="pr-received-btn" onclick="window.openReceived('${p.id}')">📦 Mark as Received</button>`):"";
+        const actions=isPending
+          ?`<div class="pr-actions"><button class="btn-approve" onclick="window.approvePurchase('${p.id}')">✓ Approve</button><button class="btn-reject" onclick="window.openReject('${p.id}')">✕ Reject</button></div>`
+          :`<div class="pr-decided ${p.status==="Approved"?"approved":"rejected"}">${p.status==="Approved"?"✓ Approved":"✕ Rejected"}${p.rejectReason?`<span class="pr-reject-reason">${esc(p.rejectReason)}</span>`:""}</div>`;
+        return `<div class="pr-card ${cls}">
+          <div class="pr-top"><div class="pr-item-name">${esc(p.item)}</div><button class="btn-del" onclick="window.deletePurchase('${p.id}')">✕</button></div>
+          <div class="pr-row"><span class="pr-price-big">₹${Number(p.price||0).toLocaleString()}</span><span class="pr-badge">Qty: ${p.qty||1}</span>${p.vendor?`<span class="pr-badge">${esc(p.vendor)}</span>`:""}</div>
+          ${p.notes?`<div class="pr-notes-box">📝 ${esc(p.notes)}</div>`:""}
+          ${flow}${actions}${receivedHTML}
+        </div>`;
+      }).join("");
+  c.innerHTML=stats+pills+list;
+}
+
+
+// ---- report filters state ----
+let rptDateFrom = "";
+let rptDateTo = "";
+let rptMember = "all";
+let rptProject = "all";
+let rptType = "both"; // tasks | approvals | both
+let rptGenerated = false;
+
+function renderReport() {
+  const c = document.getElementById("main-content");
+  const projects = [...new Set(data.tasks.map(t=>t.project).filter(Boolean))];
+
+  // Timestamp to date string
+  function tsToDate(ts) {
+    if(!ts) return null;
+    if(ts.seconds) return new Date(ts.seconds*1000).toISOString().split("T")[0];
+    return null;
+  }
+  function fmtTs(ts) {
+    if(!ts) return "";
+    const d = ts.seconds ? new Date(ts.seconds*1000) : null;
+    if(!d) return "";
+    return d.toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"});
+  }
+  function inRange(ts) {
+    const d = tsToDate(ts);
+    if(!d) return true; // no date = include
+    if(rptDateFrom && d < rptDateFrom) return false;
+    if(rptDateTo && d > rptDateTo) return false;
+    return true;
+  }
+
+  // Filter tasks
+  const filteredTasks = (rptType==="approvals"||rptType==="expenses"||rptType==="received") ? [] : data.tasks.filter(t => {
+    if(rptMember!=="all" && t.assigneeId!==rptMember) return false;
+    if(rptProject!=="all" && (t.project||"")!==rptProject) return false;
+    if(!inRange(t.createdAt)) return false;
+    return true;
+  });
+
+  // Filter purchases
+  const filteredPR = (rptType==="tasks"||rptType==="expenses"||rptType==="received") ? [] : (data.purchases||[]).filter(p => {
+    if(rptMember!=="all" && p.requesterId!==rptMember) return false;
+    if(!inRange(p.createdAt)) return false;
+    return true;
+  });
+
+  // Filter expenses
+  const filteredExp = (rptType==="tasks"||rptType==="both"||rptType==="approvals") ? [] : (data.expenses||[]).filter(e => {
+    if(rptMember!=="all" && e.memberId!==rptMember) return false;
+    if(rptProject!=="all" && (e.project||"")!==rptProject) return false;
+    if(!inRange(e.createdAt)) return false;
+    return true;
+  });
+
+  // Filter received amounts
+  const filteredRecv = (rptType==="tasks"||rptType==="both"||rptType==="approvals"||rptType==="expenses") ? [] : (data.receivedAmounts||[]).filter(e => {
+    if(rptMember!=="all" && e.memberId!==rptMember) return false;
+    if(rptProject!=="all" && (e.project||"")!==rptProject) return false;
+    if(!inRange(e.createdAt)) return false;
+    return true;
+  });
+
+  // For "all" type include everything
+  const allExp = rptType==="all" ? (data.expenses||[]).filter(e=>{
+    if(rptMember!=="all" && e.memberId!==rptMember) return false;
+    if(rptProject!=="all" && (e.project||"")!==rptProject) return false;
+    if(!inRange(e.createdAt)) return false;
+    return true;
+  }) : filteredExp;
+  const allRecv = rptType==="all" ? (data.receivedAmounts||[]).filter(e=>{
+    if(rptMember!=="all" && e.memberId!==rptMember) return false;
+    if(rptProject!=="all" && (e.project||"")!==rptProject) return false;
+    if(!inRange(e.createdAt)) return false;
+    return true;
+  }) : filteredRecv;
+  const allTasks = rptType==="all" ? data.tasks.filter(t=>{
+    if(rptMember!=="all" && t.assigneeId!==rptMember) return false;
+    if(rptProject!=="all" && (t.project||"")!==rptProject) return false;
+    if(!inRange(t.createdAt)) return false;
+    return true;
+  }) : filteredTasks;
+  const allPR = rptType==="all" ? (data.purchases||[]).filter(p=>{
+    if(rptMember!=="all" && p.requesterId!==rptMember) return false;
+    if(!inRange(p.createdAt)) return false;
+    return true;
+  }) : filteredPR;
+
+  const filtersHTML = `<div class="report-filters">
+    <div class="report-filters-title">🔍 Filter Report</div>
+    <div class="report-filter-row">
+      <div><label class="form-label" style="font-size:10px">From date</label><input class="form-input" style="padding:8px 10px;font-size:13px" type="date" value="${rptDateFrom}" onchange="window.setRptDateFrom(this.value)"></div>
+      <div><label class="form-label" style="font-size:10px">To date</label><input class="form-input" style="padding:8px 10px;font-size:13px" type="date" value="${rptDateTo}" onchange="window.setRptDateTo(this.value)"></div>
+    </div>
+    <div class="report-filter-row">
+      <div><label class="form-label" style="font-size:10px">Team member</label>
+        <select class="form-select" style="padding:8px 10px;font-size:13px" onchange="window.setRptMember(this.value)">
+          <option value="all">All Members</option>
+          ${data.employees.map(e=>`<option value="${e.id}" ${rptMember===e.id?"selected":""}>${e.name.split(" ")[0]}</option>`).join("")}
+        </select>
+      </div>
+      <div><label class="form-label" style="font-size:10px">Project</label>
+        <select class="form-select" style="padding:8px 10px;font-size:13px" onchange="window.setRptProject(this.value)">
+          <option value="all">All Projects</option>
+          ${projects.map(p=>`<option value="${p}" ${rptProject===p?"selected":""}>${p}</option>`).join("")}
+        </select>
+      </div>
+    </div>
+    <div class="report-filter-row">
+      <div><label class="form-label" style="font-size:10px">Show</label>
+        <select class="form-select" style="padding:8px 10px;font-size:13px" onchange="window.setRptType(this.value)">
+          <option value="all" ${rptType==="all"?"selected":""}>All</option>
+          <option value="both" ${rptType==="both"?"selected":""}>Tasks + Approvals</option>
+          <option value="tasks" ${rptType==="tasks"?"selected":""}>Tasks only</option>
+          <option value="approvals" ${rptType==="approvals"?"selected":""}>Approvals only</option>
+          <option value="expenses" ${rptType==="expenses"?"selected":""}>Expenses only</option>
+          <option value="received" ${rptType==="received"?"selected":""}>Received only</option>
+        </select>
+      </div>
+      <div style="display:flex;align-items:flex-end">
+        <button class="report-generate-btn" style="margin-bottom:0;padding:9px" onclick="window.generateReport()">Generate</button>
+      </div>
+    </div>
+  </div>`;
+
+  if (!rptGenerated) {
+    c.innerHTML = filtersHTML + `<div class="report-empty">Set your filters above and tap <strong>Generate</strong> to view the report.</div>`;
+    return;
+  }
+
+  const useTasks=rptType==="all"?allTasks:filteredTasks;
+  const usePR=rptType==="all"?allPR:filteredPR;
+  const useExp=rptType==="all"?allExp:filteredExp;
+  const useRecv=rptType==="all"?allRecv:filteredRecv;
+
+  const approvedVal = usePR.filter(p=>p.status==="Approved").reduce((s,p)=>s+Number(p.price||0)*Number(p.qty||1),0);
+  const totalExpVal = useExp.reduce((s,e)=>s+Number(e.amount||0),0);
+  const totalRecvVal = useRecv.reduce((s,e)=>s+Number(e.amount||0),0);
+
+  const showExpInSummary = (rptType==="all"||rptType==="expenses"||rptType==="received");
+  const summary = showExpInSummary
+    ? `<div class="report-summary">
+        <div class="report-sum-card"><div class="report-sum-num" style="color:#16A34A;font-size:14px">₹${totalRecvVal>=1000?(totalRecvVal/1000).toFixed(1)+"k":totalRecvVal}</div><div class="report-sum-label">💵 Received</div></div>
+        <div class="report-sum-card"><div class="report-sum-num" style="color:#D97706;font-size:14px">₹${totalExpVal>=1000?(totalExpVal/1000).toFixed(1)+"k":totalExpVal}</div><div class="report-sum-label">💸 Expenses</div></div>
+        <div class="report-sum-card"><div class="report-sum-num" style="color:${totalRecvVal-totalExpVal>=0?"#4F7EFF":"#EF4444"};font-size:14px">₹${Math.abs(totalRecvVal-totalExpVal)>=1000?(Math.abs(totalRecvVal-totalExpVal)/1000).toFixed(1)+"k":Math.abs(totalRecvVal-totalExpVal)}</div><div class="report-sum-label">${totalRecvVal-totalExpVal>=0?"✅ Balance":"⚠️ Deficit"}</div></div>
+      </div>`
+    : `<div class="report-summary">
+        <div class="report-sum-card"><div class="report-sum-num" style="color:#4F7EFF">${useTasks.length}</div><div class="report-sum-label">Tasks</div></div>
+        <div class="report-sum-card"><div class="report-sum-num" style="color:#F59E0B">${usePR.length}</div><div class="report-sum-label">Requests</div></div>
+        <div class="report-sum-card"><div class="report-sum-num" style="color:#16A34A;font-size:15px">₹${approvedVal>=1000?(approvedVal/1000).toFixed(1)+"k":approvedVal}</div><div class="report-sum-label">Approved ₹</div></div>
+      </div>`;
+
+  // Task list
+  const taskListHTML = (rptType==="approvals"||rptType==="expenses"||rptType==="received") ? "" : `<div class="report-section">`
+    <div class="report-section-hdr">
+      <div class="report-section-title">📋 Tasks</div>
+      <div class="report-count">${useTasks.length} items</div>
+    </div>
+    ${useTasks.length===0?`<div class="report-empty">No tasks match these filters.</div>`:
+    useTasks.map(t=>{
+      const emp = data.employees.find(e=>e.id===t.assigneeId);
+      const pct = Number(t.progress||0);
+      const pctColor = pct>=100?"#16A34A":pct>=50?"#4F7EFF":"#F59E0B";
+      const sc = {"Not Started":"s-not","In Progress":"s-in","Done":"s-done","Blocked":"s-blk"}[t.status]||"s-not";
+      return `<div class="report-list-item">
+        ${emp?avatarDiv(emp,34):`<div style="width:34px;height:34px;border-radius:50%;background:var(--border);flex-shrink:0"></div>`}
+        <div class="report-item-main">
+          <div class="report-item-title">${esc(t.title)}</div>
+          <div class="report-item-meta">
+            ${t.project?`<span class="badge badge-project" style="font-size:10px">${esc(t.project)}</span>`:""}
+            <span class="badge ${sc}" style="font-size:10px">${t.status}</span>
+            <span class="report-item-date">${emp?esc(emp.name.split(" ")[0]):""}</span>
+            <span class="report-item-date">${fmtTs(t.createdAt)}</span>
+          </div>
+        </div>
+        <div class="report-item-right">
+          <div class="report-pct" style="color:${pctColor}">${pct}%</div>
+          <div class="report-mini-bar"><div class="report-mini-fill" style="width:${pct}%;background:${pctColor}"></div></div>
+        </div>
+      </div>`;
+    }).join("")}
+  </div>`;
+
+  // Approval list
+  const prListHTML = (rptType==="tasks"||rptType==="expenses"||rptType==="received") ? "" : `<div class="report-section">`
+    <div class="report-section-hdr">
+      <div class="report-section-title">🛒 Approvals</div>
+      <div class="report-count">${usePR.length} items</div>
+    </div>
+    ${usePR.length===0?`<div class="report-empty">No purchase requests match these filters.</div>`:
+    usePR.map(p=>{
+      const req=data.employees.find(e=>e.id===p.requesterId);
+      const apr=data.employees.find(e=>e.id===p.approverId);
+      const cls=p.status==="Pending"?"rl-pending":p.status==="Approved"?"rl-approved":"rl-rejected";
+      const statusColor=p.status==="Approved"?"#16A34A":p.status==="Rejected"?"#EF4444":"#F59E0B";
+      return `<div class="report-list-item ${cls}">
+        ${req?avatarDiv(req,34):`<div style="width:34px;height:34px;border-radius:50%;background:var(--border);flex-shrink:0"></div>`}
+        <div class="report-item-main">
+          <div class="report-item-title">${esc(p.item)}</div>
+          <div class="report-item-meta">
+            ${p.vendor?`<span class="badge badge-project" style="font-size:10px">${esc(p.vendor)}</span>`:""}
+            <span class="report-item-date">${req?esc(req.name.split(" ")[0]):""} → ${apr?esc(apr.name.split(" ")[0]):""}</span>
+            <span class="report-item-date">${fmtTs(p.createdAt)}</span>
+            ${p.receivedAt?`<span class="badge" style="font-size:10px;background:#F0FDF4;color:#16A34A">📦 Received ${fmtDate(p.receivedAt)}</span>`:""}
+          </div>
+        </div>
+        <div class="report-item-right">
+          <div class="report-price">₹${Number(p.price||0).toLocaleString()}</div>
+          <div style="font-size:11px;font-weight:700;color:${statusColor};margin-top:3px">${p.status}</div>
+        </div>
+      </div>`;
+    }).join("")}
+  </div>`;
+
+  // Expense list
+  const expListHTML = (rptType==="tasks"||rptType==="both"||rptType==="approvals") ? "" : (() => {
+    const sorted = [...useExp].sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+    return `<div class="report-section">
+      <div class="report-section-hdr">
+        <div class="report-section-title">💸 Expenses</div>
+        <div class="report-count">${sorted.length} items</div>
+      </div>
+      ${sorted.length===0?`<div class="report-empty">No expenses match these filters.</div>`:
+      sorted.map(e=>{
+        const member=data.employees.find(m=>m.id===e.memberId);
+        return `<div class="report-list-item" style="border-left:3px solid #F59E0B">
+          ${member?avatarDiv(member,34):`<div style="width:34px;height:34px;border-radius:50%;background:var(--border);flex-shrink:0"></div>`}
+          <div class="report-item-main">
+            <div class="report-item-title">${esc(e.type||"Expense")}</div>
+            <div class="report-item-meta">
+              ${e.project?`<span class="badge badge-project" style="font-size:10px">${esc(e.project)}</span>`:""}
+              ${member?`<span class="report-item-date">${esc(member.name.split(" ")[0])}</span>`:""}
+              ${e.date?`<span class="report-item-date">📅 ${fmtDate(e.date)}</span>`:""}
+              ${e.notes?`<span class="report-item-date">📝 ${esc(e.notes)}</span>`:""}
+            </div>
+          </div>
+          <div class="report-item-right">
+            <div class="report-price" style="color:#D97706">₹${Number(e.amount||0).toLocaleString()}</div>
+          </div>
+        </div>`;
+      }).join("")}
+    </div>`;
+  })();
+
+  // Received amounts list
+  const recvListHTML = (rptType==="tasks"||rptType==="both"||rptType==="approvals"||rptType==="expenses") ? "" : (() => {
+    const sorted = [...useRecv].sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+    return `<div class="report-section">
+      <div class="report-section-hdr">
+        <div class="report-section-title">💵 Received</div>
+        <div class="report-count">${sorted.length} items</div>
+      </div>
+      ${sorted.length===0?`<div class="report-empty">No received amounts match these filters.</div>`:
+      sorted.map(e=>{
+        const member=data.employees.find(m=>m.id===e.memberId);
+        return `<div class="report-list-item" style="border-left:3px solid #16A34A">
+          ${member?avatarDiv(member,34):`<div style="width:34px;height:34px;border-radius:50%;background:var(--border);flex-shrink:0"></div>`}
+          <div class="report-item-main">
+            <div class="report-item-title">${esc(e.notes||"Amount Received")}</div>
+            <div class="report-item-meta">
+              ${e.project?`<span class="badge badge-project" style="font-size:10px">${esc(e.project)}</span>`:""}
+              ${member?`<span class="report-item-date">${esc(member.name.split(" ")[0])}</span>`:""}
+              ${e.date?`<span class="report-item-date">📅 ${fmtDate(e.date)}</span>`:""}
+            </div>
+          </div>
+          <div class="report-item-right">
+            <div class="report-price" style="color:#16A34A">₹${Number(e.amount||0).toLocaleString()}</div>
+          </div>
+        </div>`;
+      }).join("")}
+    </div>`;
+  })();
+
+  // All view combines everything
+  const allExpSection = rptType==="all" ? expListHTML.replace("(rptType==", "") : expListHTML;
+
+  c.innerHTML = filtersHTML + summary + taskListHTML + prListHTML + expListHTML + recvListHTML;
+}
+
+window.setRptDateFrom=function(v){rptDateFrom=v;};
+window.setRptDateTo=function(v){rptDateTo=v;};
+window.setRptMember=function(v){rptMember=v;};
+window.setRptProject=function(v){rptProject=v;};
+window.setRptType=function(v){rptType=v;};
+window.generateReport=function(){rptGenerated=true;renderReport();};
+window.exportReport=function(){
+  // Simple text export via clipboard / share
+  const tasks=data.tasks;const prs=data.purchases||[];
+  let txt="R CUBE TASKS REPORT\n"+"=".repeat(30)+"\n\nTASKS\n";
+  tasks.forEach(t=>{
+    const emp=data.employees.find(e=>e.id===t.assigneeId);
+    txt+=`- ${t.title} | ${t.project||"-"} | ${emp?emp.name:"Unassigned"} | ${t.status} | ${t.progress||0}%\n`;
+  });
+  txt+="\nAPPROVALS\n";
+  prs.forEach(p=>{
+    const req=data.employees.find(e=>e.id===p.requesterId);
+    txt+=`- ${p.item} x${p.qty} | ₹${p.price} | ${req?req.name:"?"} | ${p.status}${p.receivedAt?" | Received "+p.receivedAt:""}\n`;
+  });
+  if(navigator.share){navigator.share({title:"R Cube Tasks Report",text:txt});}
+  else if(navigator.clipboard){navigator.clipboard.writeText(txt).then(()=>showToast("Report copied ✓"));}
+  else{showToast("Copy not supported on this browser");}
+};
+
+
+// ---- EXPENSES ----
+function renderExpenses() {
+  const c = document.getElementById("main-content");
+  const expenses = data.expenses || [];
+  const received = data.receivedAmounts || [];
+
+  const filtExp = expenses.filter(e => {
+    if (expMemberFilter !== "all" && e.memberId !== expMemberFilter) return false;
+    if (expFilter !== "all" && (e.project||"") !== expFilter) return false;
+    return true;
+  });
+  const filtRecv = received.filter(e => {
+    if (expMemberFilter !== "all" && e.memberId !== expMemberFilter) return false;
+    if (expFilter !== "all" && (e.project||"") !== expFilter) return false;
+    return true;
+  });
+
+  const totalExp = filtExp.reduce((s,e)=>s+Number(e.amount||0),0);
+  const totalRecv = filtRecv.reduce((s,e)=>s+Number(e.amount||0),0);
+  const balance = totalRecv - totalExp;
+
+  const projects = [...new Set([...expenses.map(e=>e.project),...received.map(e=>e.project)].filter(Boolean))];
+
+  const balanceBar = `<div class="balance-bar">
+    <div class="bal-item"><div class="bal-num" style="color:#16A34A">₹${totalRecv>=1000?(totalRecv/1000).toFixed(1)+"k":totalRecv}</div><div class="bal-label">💵 Received</div></div>
+    <div class="bal-divider"></div>
+    <div class="bal-item"><div class="bal-num" style="color:#D97706">₹${totalExp>=1000?(totalExp/1000).toFixed(1)+"k":totalExp}</div><div class="bal-label">💸 Spent</div></div>
+    <div class="bal-divider"></div>
+    <div class="bal-item"><div class="bal-num" style="color:${balance>=0?"#4F7EFF":"#EF4444"}">₹${Math.abs(balance)>=1000?(Math.abs(balance)/1000).toFixed(1)+"k":Math.abs(balance)}</div><div class="bal-label">${balance>=0?"✅ Balance":"⚠️ Deficit"}</div></div>
+  </div>`;
+
+  // Per-member balance cards
+  const memberBalHTML = data.employees.length === 0 ? "" : (() => {
+    const maxBal = Math.max(...data.employees.map(emp => {
+      const r = received.filter(e=>e.memberId===emp.id).reduce((s,e)=>s+Number(e.amount||0),0);
+      const ex = expenses.filter(e=>e.memberId===emp.id).reduce((s,e)=>s+Number(e.amount||0),0);
+      return Math.abs(r - ex);
+    }), 1);
+    const cards = data.employees.map(emp => {
+      const empRecv = received.filter(e=>e.memberId===emp.id).reduce((s,e)=>s+Number(e.amount||0),0);
+      const empExp  = expenses.filter(e=>e.memberId===emp.id).reduce((s,e)=>s+Number(e.amount||0),0);
+      const empBal  = empRecv - empExp;
+      const pct = Math.min((Math.abs(empBal)/maxBal)*100,100);
+      const balColor = empBal > 0 ? "#4F7EFF" : empBal < 0 ? "#EF4444" : "#94A3B8";
+      const balLabel = empBal > 0 ? "In Hand" : empBal < 0 ? "Deficit" : "Settled";
+      return `<div class="member-bal-card">
+        ${avatarDiv(emp, 38)}
+        <div class="member-bal-info">
+          <div class="member-bal-name">${esc(emp.name)}</div>
+          <div class="member-bal-nums">
+            <span class="member-bal-num" style="color:#16A34A">↑₹${empRecv.toLocaleString()}</span>
+            <span class="member-bal-num" style="color:#D97706">↓₹${empExp.toLocaleString()}</span>
+          </div>
+          <div class="member-bal-bar-bg"><div class="member-bal-bar-fill" style="width:${pct}%;background:${balColor}"></div></div>
+        </div>
+        <div class="member-bal-right">
+          <div class="member-bal-amount" style="color:${balColor}">₹${Math.abs(empBal).toLocaleString()}</div>
+          <div class="member-bal-tag" style="color:${balColor}">${balLabel}</div>
+        </div>
+      </div>`;
+    }).join("");
+    return `<div class="section-label" style="margin-top:4px">👤 Balance per Member</div><div class="member-bal-section">${cards}</div>`;
+  })();
+
+  const toggles = `<div class="exp-toggle-row">
+    <button class="exp-toggle ${expView==='all'?'active-all':''}" onclick="expView='all';renderExpenses()">All</button>
+    <button class="exp-toggle ${expView==='expenses'?'active-exp':''}" onclick="expView='expenses';renderExpenses()">💸 Expenses</button>
+    <button class="exp-toggle ${expView==='received'?'active-recv':''}" onclick="expView='received';renderExpenses()">💵 Received</button>
+  </div>`;
+
+  const filters = `<div class="filters">
+    <select class="filter-select" onchange="expMemberFilter=this.value;renderExpenses()">
+      <option value="all">All Members</option>
+      ${data.employees.map(e=>`<option value="${e.id}" ${expMemberFilter===e.id?"selected":""}>${e.name.split(" ")[0]}</option>`).join("")}
+    </select>
+    <select class="filter-select" onchange="expFilter=this.value;renderExpenses()">
+      <option value="all">All Projects</option>
+      ${projects.map(p=>`<option value="${p}" ${expFilter===p?"selected":""}>${p}</option>`).join("")}
+    </select>
+  </div>`;
+
+  // Expenses list
+  const expSorted = [...filtExp].sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+  const expList = expSorted.map(e => {
+    const member = data.employees.find(m=>m.id===e.memberId);
+    return `<div class="exp-card">
+      <div class="exp-top"><div class="exp-title">${esc(e.type||"Expense")}</div><button class="btn-del" onclick="window.deleteExpense('${e.id}')">✕</button></div>
+      <div class="exp-amount">₹${Number(e.amount||0).toLocaleString()}</div>
+      <div class="exp-meta" style="margin-top:6px">
+        ${e.project?`<span class="badge badge-project">${esc(e.project)}</span>`:""}
+        ${e.date?`<span class="hours-badge">📅 ${fmtDate(e.date)}</span>`:""}
+        ${e.notes?`<span class="hours-badge">📝 ${esc(e.notes)}</span>`:""}
+      </div>
+      ${member?`<div class="exp-who">${avatarDiv(member,28)}<div><div class="exp-who-name">${esc(member.name)}</div><div class="exp-who-role">${esc(member.role||"")}</div></div></div>`:""}
+    </div>`;
+  }).join("");
+
+  // Received list
+  const recvSorted = [...filtRecv].sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+  const recvList = recvSorted.map(e => {
+    const member = data.employees.find(m=>m.id===e.memberId);
+    return `<div class="recv-card">
+      <div class="exp-top"><div class="exp-title">${esc(e.notes||"Amount Received")}</div><button class="btn-del" onclick="window.deleteReceivedAmount('${e.id}')">✕</button></div>
+      <div class="recv-amount">₹${Number(e.amount||0).toLocaleString()}</div>
+      <div class="exp-meta" style="margin-top:6px">
+        ${e.project?`<span class="badge badge-project">${esc(e.project)}</span>`:""}
+        ${e.date?`<span class="hours-badge">📅 ${fmtDate(e.date)}</span>`:""}
+      </div>
+      ${member?`<div class="exp-who">${avatarDiv(member,28)}<div><div class="exp-who-name">${esc(member.name)}</div><div class="exp-who-role">${esc(member.role||"")}</div></div></div>`:""}
+    </div>`;
+  }).join("");
+
+  let listHTML = "";
+  if (expView==="all") {
+    listHTML = (expSorted.length===0 && recvSorted.length===0)
+      ? `<div class="empty"><div class="empty-icon">💰</div>No entries yet.<br>Tap <strong>+ Expense</strong> to add.</div>`
+      : (expSorted.length>0?`<div class="section-label">💸 Expenses</div>`+expList:"")+(recvSorted.length>0?`<div class="section-label">💵 Received</div>`+recvList:"");
+  } else if (expView==="expenses") {
+    listHTML = expSorted.length===0?`<div class="empty"><div class="empty-icon">💸</div>No expenses yet.</div>`:expList;
+  } else {
+    listHTML = recvSorted.length===0?`<div class="empty"><div class="empty-icon">💵</div>No received amounts yet.<br>Tap <strong>+ Expense</strong> → Received Amount.</div>`:recvList;
+  }
+
+  c.innerHTML = balanceBar + memberBalHTML + toggles + filters + listHTML;
+}
+
+window.showExpenseOptions = function() {
+  // Show a mini picker: Expense or Received Amount
+  const existing = document.getElementById("exp-options-bar");
+  if(existing){existing.remove();return;}
+  const bar = document.createElement("div");
+  bar.id = "exp-options-bar";
+  bar.style.cssText="position:fixed;bottom:calc(72px + env(safe-area-inset-bottom));left:16px;right:16px;background:#1A1D23;border-radius:16px;padding:12px;display:flex;gap:10px;z-index:300;";
+  bar.innerHTML=`
+    <button onclick="document.getElementById('exp-options-bar').remove();window.openAddExpense();" style="flex:1;padding:12px;border-radius:10px;border:none;background:#FFFBEB;color:#D97706;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">💸 Add Expense</button>
+    <button onclick="document.getElementById('exp-options-bar').remove();window.openAddReceivedAmount();" style="flex:1;padding:12px;border-radius:10px;border:none;background:#F0FDF4;color:#16A34A;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">💵 Amount Received</button>
+  `;
+  document.body.appendChild(bar);
+  setTimeout(()=>{document.addEventListener("click",function h(e){if(!bar.contains(e.target)){bar.remove();document.removeEventListener("click",h);}},{once:false});},100);
+};
+
+window.openAddReceivedAmount = function() {
+  document.getElementById("ra-member").innerHTML =
+    `<option value="">Select member...</option>` +
+    data.employees.map(e=>`<option value="${e.id}">${e.name} (${e.role||"?"})</option>`).join("");
+  const projects = [...new Set(data.tasks.map(t=>t.project).filter(Boolean))].sort();
+  document.getElementById("ra-project-select").innerHTML =
+    `<option value="">No project</option>` +
+    projects.map(p=>`<option value="${p}">${p}</option>`).join("") +
+    `<option value="__new__">➕ Add new project...</option>`;
+  document.getElementById("ra-project-new").style.display="none";
+  document.getElementById("ra-amount").value="";
+  document.getElementById("ra-date").value=new Date().toISOString().split("T")[0];
+  document.getElementById("ra-notes").value="";
+  document.getElementById("modal-recv-amount").style.display="flex";
+  setTimeout(()=>document.getElementById("ra-amount").focus(),100);
+};
+
+window.handleRaProjectSelect = function(val) {
+  const inp = document.getElementById("ra-project-new");
+  if(val==="__new__"){inp.style.display="block";setTimeout(()=>inp.focus(),80);}
+  else{inp.style.display="none";inp.value="";}
+};
+
+window.saveReceivedAmount = async function() {
+  const memberId = document.getElementById("ra-member").value;
+  if(!memberId){showToast("Select a team member");return;}
+  const amount = Number(document.getElementById("ra-amount").value)||0;
+  if(!amount){showToast("Enter an amount");return;}
+  const projVal = document.getElementById("ra-project-select").value;
+  const project = projVal==="__new__" ? document.getElementById("ra-project-new").value.trim() : (projVal||"");
+  await addDoc(collection(db,"received_amounts"),{
+    memberId, amount, project,
+    date: document.getElementById("ra-date").value,
+    notes: document.getElementById("ra-notes").value.trim(),
+    createdAt: serverTimestamp()
+  });
+  closeModal("modal-recv-amount");
+  showToast("Amount recorded ✓");
+};
+
+window.deleteReceivedAmount = async function(id) {
+  if(!confirm("Delete this entry?"))return;
+  await deleteDoc(doc(db,"received_amounts",id));
+  showToast("Removed");
+};
+
+window.openAddExpense = function() {
+  // Expense types dropdown
+  const types = [...new Set((data.expenses||[]).map(e=>e.type).filter(Boolean))].sort();
+  const defaultTypes = ["Travel","Food","Materials","Tools","Fuel","Accommodation","Communication","Other"];
+  const allTypes = [...new Set([...defaultTypes,...types])].sort();
+  document.getElementById("ex-type-select").innerHTML =
+    `<option value="">Select expense...</option>` +
+    allTypes.map(t=>`<option value="${t}">${t}</option>`).join("") +
+    `<option value="__new__">➕ Add new type...</option>`;
+  document.getElementById("ex-type-new").style.display="none";
+  document.getElementById("ex-type-new").value="";
+
+  // Projects dropdown
+  const projects = [...new Set(data.tasks.map(t=>t.project).filter(Boolean))].sort();
+  document.getElementById("ex-project-select").innerHTML =
+    `<option value="">No project</option>` +
+    projects.map(p=>`<option value="${p}">${p}</option>`).join("") +
+    `<option value="__new__">➕ Add new project...</option>`;
+  document.getElementById("ex-project-new").style.display="none";
+
+  // Members dropdown
+  document.getElementById("ex-member").innerHTML =
+    `<option value="">Select member...</option>` +
+    data.employees.map(e=>`<option value="${e.id}">${e.name} (${e.role||"?"})</option>`).join("");
+
+  document.getElementById("ex-amount").value="";
+  document.getElementById("ex-date").value=new Date().toISOString().split("T")[0];
+  document.getElementById("ex-notes").value="";
+  document.getElementById("modal-expense").style.display="flex";
+  setTimeout(()=>document.getElementById("ex-amount").focus(),100);
+};
+
+window.handleExpTypeSelect = function(val) {
+  const inp = document.getElementById("ex-type-new");
+  if(val==="__new__"){inp.style.display="block";setTimeout(()=>inp.focus(),80);}
+  else{inp.style.display="none";inp.value="";}
+};
+
+window.handleExpProjectSelect = function(val) {
+  const inp = document.getElementById("ex-project-new");
+  if(val==="__new__"){inp.style.display="block";setTimeout(()=>inp.focus(),80);}
+  else{inp.style.display="none";inp.value="";}
+};
+
+window.saveExpense = async function() {
+  const typeVal = document.getElementById("ex-type-select").value;
+  let type = typeVal==="__new__" ? document.getElementById("ex-type-new").value.trim() : typeVal;
+  if(!type){showToast("Select or enter expense type");return;}
+  const amount = Number(document.getElementById("ex-amount").value)||0;
+  if(!amount){showToast("Enter an amount");return;}
+  const memberId = document.getElementById("ex-member").value;
+  if(!memberId){showToast("Select a team member");return;}
+  const projVal = document.getElementById("ex-project-select").value;
+  const project = projVal==="__new__" ? document.getElementById("ex-project-new").value.trim() : (projVal||"");
+  await addDoc(collection(db,"expenses"),{
+    type, amount, project,
+    memberId,
+    date: document.getElementById("ex-date").value,
+    notes: document.getElementById("ex-notes").value.trim(),
+    createdAt: serverTimestamp()
+  });
+  closeModal("modal-expense");
+  showToast("Expense added ✓");
+};
+
+window.deleteExpense = async function(id) {
+  if(!confirm("Delete this expense?"))return;
+  await deleteDoc(doc(db,"expenses",id));
+  showToast("Expense removed");
+};
+
+function renderTeam() {
+  const c=document.getElementById("main-content");
+  const totalHours=data.employees.map(e=>data.tasks.filter(t=>t.assigneeId===e.id).reduce((s,t)=>s+Number(t.hours||0),0));
+  const maxH=Math.max(...totalHours,1);
+  const stats=`<div class="stats">
+    <div class="stat-card"><div class="stat-num" style="color:#4F7EFF">${data.tasks.length}</div><div class="stat-label">Tasks</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:#F59E0B">${(data.purchases||[]).filter(p=>p.status==="Pending").length}</div><div class="stat-label">Pending</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:#16A34A">${data.tasks.filter(t=>t.status==="Done").length}</div><div class="stat-label">Done</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:#C77DFF">${data.employees.length}</div><div class="stat-label">People</div></div>
+  </div>`;
+  const list=data.employees.length===0
+    ?`<div class="empty"><div class="empty-icon">👥</div>No team members.<br>Tap 👤 to add someone.</div>`
+    :data.employees.map((e,i)=>{
+        const empTasks=data.tasks.filter(t=>t.assigneeId===e.id);
+        const empPR=(data.purchases||[]).filter(p=>p.requesterId===e.id);
+        const hours=totalHours[i];
+        const pct=Math.min((hours/maxH)*100,100);
+        const over=hours>40;
+        const chips=empTasks.length===0?`<span style="font-size:12px;color:var(--muted)">No tasks</span>`:empTasks.map(t=>`<div class="task-chip"><span>${esc(t.title)}</span><span style="color:var(--muted)">${t.hours||0}h</span><span class="chip-status ${STATUS_CLASS[t.status]||'s-not'}">${t.status}</span></div>`).join("");
+        const prChips=empPR.length===0?"":
+          `<div class="section-label">Purchase Requests</div><div class="task-chips">${empPR.map(p=>`<div class="task-chip"><span>${esc(p.item)}</span><span style="color:var(--muted)">₹${Number(p.price||0).toLocaleString()}</span><span class="chip-status ${p.status==="Approved"?"s-done":p.status==="Rejected"?"s-blk":"s-not"}">${p.status}</span></div>`).join("")}</div>`;
+        return `<div class="emp-card">
+          <div class="emp-top">
+            ${avatarDiv(e,44)}
+            <div class="emp-info"><div class="emp-name">${esc(e.name)}</div><div class="emp-role">${esc(e.role||"No role")}</div></div>
+            <div class="emp-hours"><div class="emp-hours-num" style="color:${over?"#EF4444":"var(--text)"}">${hours}h</div><div class="emp-hours-label">allocated</div></div>
+            <button class="btn-del" onclick="window.deleteEmployee('${e.id}')" style="margin-left:6px">✕</button>
+          </div>
+          <div class="load-bar-bg"><div class="load-bar-fill" style="width:${pct}%;background:${over?"#EF4444":e.color}"></div></div>
+          <div class="task-chips">${chips}</div>${prChips}
+        </div>`;
+      }).join("");
+  c.innerHTML=stats+list;
+}
+
+// ---- FILTER SETTERS ----
+window.setFilterAssignee=function(v){filterAssignee=v;render();};
+window.setFilterStatus=function(v){filterStatus=v;render();};
+window.setPrFilter=function(v){prFilter=v;render();};
+
+// ---- FIRESTORE ACTIONS ----
+window.updateStatus=async function(id,status){await updateDoc(doc(db,"tasks",id),{status,updatedAt:serverTimestamp()});};
+window.updateAssignee=async function(id,val){await updateDoc(doc(db,"tasks",id),{assigneeId:val||null});};
+window.deleteTask=async function(id){if(!confirm("Delete this task?"))return;await deleteDoc(doc(db,"tasks",id));showToast("Task removed");};
+window.deleteEmployee=async function(id){
+  if(!confirm("Remove employee? Their tasks will become unassigned."))return;
+  await deleteDoc(doc(db,"employees",id));
+  for(const t of data.tasks.filter(t=>t.assigneeId===id)) await updateDoc(doc(db,"tasks",t.id),{assigneeId:null});
+  showToast("Employee removed");
+};
+window.approvePurchase=async function(id){await updateDoc(doc(db,"purchases",id),{status:"Approved"});showToast("Request approved ✓");};
+window.openReject=function(id){pendingRejectId=id;document.getElementById("reject-comment").value="";document.getElementById("modal-reject").style.display="flex";};
+window.confirmReject=async function(){
+  const reason=document.getElementById("reject-comment").value.trim();
+  await updateDoc(doc(db,"purchases",pendingRejectId),{status:"Rejected",rejectReason:reason});
+  closeModal("modal-reject");showToast("Request rejected");
+};
+window.deletePurchase=async function(id){if(!confirm("Delete this request?"))return;await deleteDoc(doc(db,"purchases",id));showToast("Removed");};
+window.openReceived=function(id){
+  pendingReceivedId=id;
+  document.getElementById("r-receiver").innerHTML=`<option value="">Select person...</option>`+data.employees.map(e=>`<option value="${e.id}">${e.name}</option>`).join("");
+  document.getElementById("r-date").value=new Date().toISOString().split("T")[0];
+  document.getElementById("r-notes").value="";
+  document.getElementById("modal-received").style.display="flex";
+};
+window.confirmReceived=async function(){
+  const receiverId=document.getElementById("r-receiver").value;
+  const dateVal=document.getElementById("r-date").value;
+  if(!receiverId){showToast("Select who received it");return;}
+  if(!dateVal){showToast("Select a date");return;}
+  const receiver=data.employees.find(e=>e.id===receiverId);
+  await updateDoc(doc(db,"purchases",pendingReceivedId),{receivedAt:dateVal,receivedBy:receiver?receiver.name:"Unknown",receivedNotes:document.getElementById("r-notes").value.trim()});
+  closeModal("modal-received");showToast("Receipt recorded ✓");
+};
+window.undoReceived=async function(id){
+  await updateDoc(doc(db,"purchases",id),{receivedAt:null,receivedBy:null,receivedNotes:null});
+  showToast("Receipt undone");
+};
+
+// ---- MODALS ----
+window.openAddTask=function(){
+  // Populate project dropdown from existing tasks
+  const projects=[...new Set(data.tasks.map(t=>t.project).filter(Boolean))].sort();
+  const psel=document.getElementById("t-project-select");
+  psel.innerHTML=`<option value="">No project</option>`+projects.map(p=>`<option value="${p}">${p}</option>`).join("")+`<option value="__new__">➕ Add new project...</option>`;
+  document.getElementById("t-project-new").style.display="none";
+  document.getElementById("t-project-new").value="";
+
+  // Populate assignee dropdown from employees
+  document.getElementById("t-assignee").innerHTML=`<option value="">Unassigned</option>`+data.employees.map(e=>`<option value="${e.id}">${e.name} (${e.role||"?"})</option>`).join("");
+
+  // Populate title dropdown from existing tasks
+  const titles=[...new Set(data.tasks.map(t=>t.title).filter(Boolean))].sort();
+  const tsel=document.getElementById("t-title-select");
+  tsel.innerHTML=`<option value="">Select task...</option>`+titles.map(t=>`<option value="${t}">${t}</option>`).join("")+`<option value="__new__">➕ Add new task...</option>`;
+  document.getElementById("t-title").style.display="none";
+  document.getElementById("t-title").value="";
+
+  ["t-hours"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("t-status").value="Not Started";
+  document.getElementById("modal-task").style.display="flex";
+  setTimeout(()=>document.getElementById("t-title").focus(),100);
+};
+
+window.handleTitleSelect=function(val){
+  const inp=document.getElementById("t-title");
+  if(val==="__new__"){
+    inp.style.display="block";
+    inp.value="";
+    setTimeout(()=>inp.focus(),80);
+  } else {
+    inp.style.display="none";
+    inp.value="";
+  }
+};
+
+window.handleProjectSelect=function(val){
+  const newInput=document.getElementById("t-project-new");
+  if(val==="__new__"){
+    newInput.style.display="block";
+    setTimeout(()=>newInput.focus(),80);
+  } else {
+    newInput.style.display="none";
+    newInput.value="";
+  }
+};
+window.openAddEmployee=function(){
+  document.getElementById("e-name").value="";
+  document.getElementById("e-role").value="";
+  document.getElementById("modal-emp").style.display="flex";
+  setTimeout(()=>document.getElementById("e-name").focus(),100);
+};
+function openAddPurchase(){
+  const opts=`<option value="">Select person...</option>`+data.employees.map(e=>`<option value="${e.id}">${e.name}</option>`).join("");
+  document.getElementById("p-requester").innerHTML=opts;
+  document.getElementById("p-approver").innerHTML=opts;
+  ["p-item","p-qty","p-price","p-vendor","p-notes"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("modal-purchase").style.display="flex";
+  setTimeout(()=>document.getElementById("p-item").focus(),100);
+}
+
+window.saveTask=async function(){
+  const tselVal=document.getElementById("t-title-select").value;
+  let title="";
+  if(tselVal==="__new__"){
+    title=document.getElementById("t-title").value.trim();
+    if(!title){showToast("Enter a task name");return;}
+  } else {
+    title=tselVal||"";
+  }
+  if(!title){showToast("Select or enter a task title");return;}
+  const psel=document.getElementById("t-project-select").value;
+  let project="";
+  if(psel==="__new__"){
+    project=document.getElementById("t-project-new").value.trim();
+    if(!project){showToast("Enter a project name");return;}
+  } else {
+    project=psel||"";
+  }
+  const assigneeId=document.getElementById("t-assignee").value||null;
+  await addDoc(collection(db,"tasks"),{title,project,hours:Number(document.getElementById("t-hours").value)||0,status:document.getElementById("t-status").value,assigneeId,createdAt:serverTimestamp()});
+  closeModal("modal-task");showToast("Task added ✓");
+};
+window.saveEmployee=async function(){
+  const name=document.getElementById("e-name").value.trim();
+  if(!name){showToast("Enter a name");return;}
+  await addDoc(collection(db,"employees"),{name,role:document.getElementById("e-role").value.trim(),color:COLORS[data.employees.length%COLORS.length],createdAt:serverTimestamp()});
+  closeModal("modal-emp");showToast("Employee added ✓");
+};
+window.savePurchase=async function(){
+  const item=document.getElementById("p-item").value.trim();
+  if(!item){showToast("Enter an item name");return;}
+  const requesterId=document.getElementById("p-requester").value;
+  const approverId=document.getElementById("p-approver").value;
+  if(!requesterId){showToast("Select who is requesting");return;}
+  if(!approverId){showToast("Select an approver");return;}
+  if(requesterId===approverId){showToast("Requester and approver must be different");return;}
+  await addDoc(collection(db,"purchases"),{item,qty:Number(document.getElementById("p-qty").value)||1,price:Number(document.getElementById("p-price").value)||0,vendor:document.getElementById("p-vendor").value.trim(),notes:document.getElementById("p-notes").value.trim(),requesterId,approverId,status:"Pending",rejectReason:"",receivedAt:null,createdAt:serverTimestamp()});
+  closeModal("modal-purchase");showToast("Request submitted ✓");
+};
+
+let pendingNoteId = null;
+window.openNote = function(id) {
+  const t = data.tasks.find(x=>x.id===id);
+  if(!t) return;
+  pendingNoteId = id;
+  document.getElementById("note-modal-title").textContent = esc(t.title);
+  document.getElementById("note-text").value = t.note||"";
+  const p = Number(t.progress||0);
+  document.getElementById("note-progress").value = p;
+  document.getElementById("note-progress-val").textContent = p+"%";
+  document.getElementById("modal-note").style.display = "flex";
+  setTimeout(()=>document.getElementById("note-text").focus(),100);
+};
+window.saveNote = async function() {
+  const note = document.getElementById("note-text").value.trim();
+  const progress = Number(document.getElementById("note-progress").value)||0;
+  await updateDoc(doc(db,"tasks",pendingNoteId),{note, progress, updatedAt:serverTimestamp()});
+  closeModal("modal-note");
+  showToast("Note saved ✓");
+};
+
+document.addEventListener("keydown",e=>{if(e.key==="Escape")["modal-task","modal-emp","modal-purchase","modal-reject","modal-received","modal-note","modal-expense","modal-recv-amount"].forEach(closeModal);});
+
+// Timeout fallback if Firebase takes too long
+setTimeout(()=>{
+  if(document.getElementById("loading").style.display!=="none"){
+    document.getElementById("loading").style.display="none";
+    document.getElementById("app").style.display="flex";
+    setSyncStatus("err");
+    render();
+  }
+},8000);
+</script>
+
+<script>
+// ---- PWA MANIFEST (injected inline) ----
+const manifest = {
+  name: "R Cube Tasks",
+  short_name: "R³ Tasks",
+  description: "Team work allocation and purchase approvals",
+  start_url: ".",
+  display: "standalone",
+  background_color: "#4F7EFF",
+  theme_color: "#4F7EFF",
+  orientation: "portrait",
+  icons: [
+    { src: generateIcon(192), sizes: "192x192", type: "image/png", purpose: "any maskable" },
+    { src: generateIcon(512), sizes: "512x512", type: "image/png", purpose: "any maskable" }
+  ]
+};
+
+function generateIcon(size) {
+  const canvas = document.createElement("canvas");
+  canvas.width = size; canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  // Background
+  const grad = ctx.createLinearGradient(0, 0, size, size);
+  grad.addColorStop(0, "#4F7EFF");
+  grad.addColorStop(1, "#7C3AED");
+  // Rounded rect
+  const r = size * 0.22;
+  ctx.beginPath();
+  ctx.moveTo(r, 0);
+  ctx.lineTo(size - r, 0);
+  ctx.quadraticCurveTo(size, 0, size, r);
+  ctx.lineTo(size, size - r);
+  ctx.quadraticCurveTo(size, size, size - r, size);
+  ctx.lineTo(r, size);
+  ctx.quadraticCurveTo(0, size, 0, size - r);
+  ctx.lineTo(0, r);
+  ctx.quadraticCurveTo(0, 0, r, 0);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+  // R³ text
+  ctx.fillStyle = "#FFFFFF";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.font = `bold ${size * 0.32}px -apple-system, sans-serif`;
+  ctx.fillText("R³", size * 0.5, size * 0.44);
+  ctx.font = `600 ${size * 0.14}px -apple-system, sans-serif`;
+  ctx.fillStyle = "rgba(255,255,255,0.85)";
+  ctx.fillText("TASKS", size * 0.5, size * 0.68);
+  return canvas.toDataURL("image/png");
+}
+
+// Build and inject manifest blob
+const icon192 = generateIcon(192);
+const icon512 = generateIcon(512);
+const manifestObj = {
+  name: "R Cube Tasks",
+  short_name: "R³ Tasks",
+  description: "Team work allocation and purchase approvals",
+  start_url: window.location.href,
+  display: "standalone",
+  background_color: "#4F7EFF",
+  theme_color: "#4F7EFF",
+  orientation: "portrait-primary",
+  icons: [
+    { src: icon192, sizes: "192x192", type: "image/png", purpose: "any maskable" },
+    { src: icon512, sizes: "512x512", type: "image/png", purpose: "any maskable" }
+  ]
+};
+const blob = new Blob([JSON.stringify(manifestObj)], {type:"application/json"});
+const url = URL.createObjectURL(blob);
+document.getElementById("pwa-manifest").href = url;
+
+// Show install prompt on Android Chrome
+let deferredPrompt = null;
+window.addEventListener("beforeinstallprompt", e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  // Install banner disabled
+});
+
+function showInstallBanner() {
+  if (!deferredPrompt) return;
+  const banner = document.createElement("div");
+  banner.id = "install-banner";
+  banner.style.cssText = `position:fixed;bottom:calc(20px + env(safe-area-inset-bottom));left:16px;right:16px;background:#1A1D23;color:#fff;border-radius:16px;padding:14px 16px;display:flex;align-items:center;gap:12px;z-index:400;box-shadow:0 8px 32px rgba(0,0,0,0.3);animation:slideUp 0.3s ease`;
+  banner.innerHTML = `
+    <div style="width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#4F7EFF,#7C3AED);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;flex-shrink:0">R³</div>
+    <div style="flex:1">
+      <div style="font-size:14px;font-weight:700">Add to Home Screen</div>
+      <div style="font-size:12px;color:#94A3B8;margin-top:2px">Install R Cube Tasks as an app</div>
+    </div>
+    <button onclick="installApp()" style="background:#4F7EFF;color:#fff;border:none;border-radius:10px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">Install</button>
+    <button onclick="document.getElementById('install-banner').remove()" style="background:none;border:none;color:#64748B;font-size:20px;cursor:pointer;line-height:1;padding:0 4px">✕</button>
+  `;
+  document.body.appendChild(banner);
+}
+
+window.installApp = async function() {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const result = await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  const banner = document.getElementById("install-banner");
+  if (banner) banner.remove();
+  if (result.outcome === "accepted") {
+    setTimeout(() => {
+      const t = document.getElementById("toast");
+      if(t){t.textContent="App installed! ✓";t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2500);}
+    }, 500);
+  }
+};
+
+window.addEventListener("appinstalled", () => {
+  deferredPrompt = null;
+  const banner = document.getElementById("install-banner");
+  if (banner) banner.remove();
+});
+</script>
+</body>
+</html>
