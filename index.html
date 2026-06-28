@@ -1045,8 +1045,7 @@ let deferredPrompt = null;
 window.addEventListener("beforeinstallprompt", e => {
   e.preventDefault();
   deferredPrompt = e;
-  // Show install banner after 3 seconds
-  setTimeout(showInstallBanner, 3000);
+  // Install banner disabled
 });
 
 function showInstallBanner() {
