@@ -11,6 +11,8 @@
 <meta name="theme-color" content="#4F7EFF">
 <meta name="description" content="R Cube Tasks - Team work allocation and purchase approval tool">
 <title>R Cube Tasks</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTkyIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZyIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM0RjdFRkYiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojN0MzQUVEIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgcng9IjQyIiBmaWxsPSJ1cmwoI2cpIi8+CiAgPHRleHQgeD0iOTYiIHk9IjEwOCIgZm9udC1mYW1pbHk9IkFyaWFsLHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNzIiIGZvbnQtd2VpZ2h0PSI5MDAiIAogICAgICAgIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIj5SPC90ZXh0PgogIDx0ZXh0IHg9Ijk2IiB5PSIxNDgiIGZvbnQtZmFtaWx5PSJBcmlhbCxzYW5zLXNlcmlmIiBmb250LXNpemU9IjMwIiBmb250LXdlaWdodD0iNzAwIiAKICAgICAgICB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiPkNVQkU8L3RleHQ+Cjwvc3ZnPg==">
+<link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTkyIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZyIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM0RjdFRkYiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojN0MzQUVEIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgcng9IjQyIiBmaWxsPSJ1cmwoI2cpIi8+CiAgPHRleHQgeD0iOTYiIHk9IjEwOCIgZm9udC1mYW1pbHk9IkFyaWFsLHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNzIiIGZvbnQtd2VpZ2h0PSI5MDAiIAogICAgICAgIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIj5SPC90ZXh0PgogIDx0ZXh0IHg9Ijk2IiB5PSIxNDgiIGZvbnQtZmFtaWx5PSJBcmlhbCxzYW5zLXNlcmlmIiBmb250LXNpemU9IjMwIiBmb250LXdlaWdodD0iNzAwIiAKICAgICAgICB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiPkNVQkU8L3RleHQ+Cjwvc3ZnPg==">
 <style>
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
   :root{
@@ -247,6 +249,82 @@
   .toast{position:fixed;bottom:calc(20px + var(--safe-bot));left:50%;transform:translateX(-50%) translateY(80px);background:#1A1D23;color:#fff;padding:10px 20px;border-radius:99px;font-size:13px;font-weight:600;z-index:300;transition:transform 0.25s,opacity 0.25s;opacity:0;white-space:nowrap;pointer-events:none;}
   .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 </style>
+
+<script>
+// Generate R3 icon dynamically
+(function() {
+  try {
+    var canvas = document.createElement("canvas");
+    canvas.width = 192; canvas.height = 192;
+    var ctx = canvas.getContext("2d");
+    
+    // Rounded rect background
+    var grad = ctx.createLinearGradient(0, 0, 192, 192);
+    grad.addColorStop(0, "#4F7EFF");
+    grad.addColorStop(1, "#7C3AED");
+    var r = 42;
+    ctx.beginPath();
+    ctx.moveTo(r, 0); ctx.lineTo(192-r, 0);
+    ctx.quadraticCurveTo(192, 0, 192, r);
+    ctx.lineTo(192, 192-r);
+    ctx.quadraticCurveTo(192, 192, 192-r, 192);
+    ctx.lineTo(r, 192);
+    ctx.quadraticCurveTo(0, 192, 0, 192-r);
+    ctx.lineTo(0, r);
+    ctx.quadraticCurveTo(0, 0, r, 0);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+    
+    // R text
+    ctx.fillStyle = "#FFFFFF";
+    ctx.font = "bold 90px Arial, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("R", 96, 82);
+    
+    // CUBE text
+    ctx.font = "bold 32px Arial, sans-serif";
+    ctx.fillStyle = "rgba(255,255,255,0.92)";
+    ctx.fillText("CUBE", 96, 142);
+
+    var dataUrl = canvas.toDataURL("image/png");
+    
+    // Set favicon
+    var link = document.querySelector("link[rel='icon']") || document.createElement("link");
+    link.rel = "icon";
+    link.type = "image/png";
+    link.href = dataUrl;
+    document.head.appendChild(link);
+    
+    // Set apple touch icon
+    var appleLink = document.querySelector("link[rel='apple-touch-icon']") || document.createElement("link");
+    appleLink.rel = "apple-touch-icon";
+    appleLink.href = dataUrl;
+    document.head.appendChild(appleLink);
+
+    // Set manifest with icon
+    var manifestObj = {
+      name: "R Cube Tasks",
+      short_name: "R Cube",
+      start_url: "./",
+      display: "standalone",
+      background_color: "#4F7EFF",
+      theme_color: "#4F7EFF",
+      icons: [
+        { src: dataUrl, sizes: "192x192", type: "image/png", purpose: "any maskable" }
+      ]
+    };
+    var blob = new Blob([JSON.stringify(manifestObj)], {type: "application/json"});
+    var manifestUrl = URL.createObjectURL(blob);
+    var manifestLink = document.createElement("link");
+    manifestLink.rel = "manifest";
+    manifestLink.href = manifestUrl;
+    document.head.appendChild(manifestLink);
+    
+  } catch(e) { console.log("Icon generation error:", e); }
+})();
+</script>
 </head>
 <body>
 
