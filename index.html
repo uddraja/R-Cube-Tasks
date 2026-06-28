@@ -858,13 +858,7 @@ function renderReport() {
       </div>`;
 
   // Task list
-  const taskListHTML = (rptType==="approvals"||rptType==="expenses"||rptType==="received") ? "" : `<div class="report-section">`
-    <div class="report-section-hdr">
-      <div class="report-section-title">📋 Tasks</div>
-      <div class="report-count">${useTasks.length} items</div>
-    </div>
-    ${useTasks.length===0?`<div class="report-empty">No tasks match these filters.</div>`:
-    useTasks.map(t=>{
+  const taskListHTML = (rptType==="approvals"||rptType==="expenses"||rptType==="received") ? "" : `<div class="report-section"><div class="report-section-hdr"><div class="report-section-title">📋 Tasks</div><div class="report-count">${useTasks.length} items</div></div>${useTasks.length===0?`<div class="report-empty">No tasks match these filters.</div>`:useTasks.map(t=>{
       const emp = data.employees.find(e=>e.id===t.assigneeId);
       const pct = Number(t.progress||0);
       const pctColor = pct>=100?"#16A34A":pct>=50?"#4F7EFF":"#F59E0B";
@@ -889,13 +883,7 @@ function renderReport() {
   </div>`;
 
   // Approval list
-  const prListHTML = (rptType==="tasks"||rptType==="expenses"||rptType==="received") ? "" : `<div class="report-section">`
-    <div class="report-section-hdr">
-      <div class="report-section-title">🛒 Approvals</div>
-      <div class="report-count">${usePR.length} items</div>
-    </div>
-    ${usePR.length===0?`<div class="report-empty">No purchase requests match these filters.</div>`:
-    usePR.map(p=>{
+  const prListHTML = (rptType==="tasks"||rptType==="expenses"||rptType==="received") ? "" : `<div class="report-section"><div class="report-section-hdr"><div class="report-section-title">🛒 Approvals</div><div class="report-count">${usePR.length} items</div></div>${usePR.length===0?`<div class="report-empty">No purchase requests match these filters.</div>`:usePR.map(p=>{
       const req=data.employees.find(e=>e.id===p.requesterId);
       const apr=data.employees.find(e=>e.id===p.approverId);
       const cls=p.status==="Pending"?"rl-pending":p.status==="Approved"?"rl-approved":"rl-rejected";
