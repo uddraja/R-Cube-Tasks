@@ -10,7 +10,6 @@
 <meta name="application-name" content="R Cube Tasks">
 <meta name="theme-color" content="#4F7EFF">
 <meta name="description" content="R Cube Tasks - Team work allocation and purchase approval tool">
-<link rel="manifest" id="pwa-manifest">
 <title>R Cube Tasks</title>
 <style>
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -255,7 +254,7 @@
 <div class="loading-screen" id="loading">
   <div class="loading-logo">R Cube <span>Tasks</span></div>
   <div class="loading-spinner"></div>
-  <div class="loading-text">Connecting to server...</div>
+  <div class="loading-text" id="loading-text">Connecting to server...</div>
 </div>
 
 <div id="app" style="display:none">
@@ -487,7 +486,7 @@
 <!-- Firebase -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, serverTimestamp, query, orderBy, enableNetwork } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBFHgXszGYHcZ7AHs3kFDNRHd_nbp6LpAc",
@@ -500,6 +499,11 @@ const firebaseConfig = {
 
 const fireApp = initializeApp(firebaseConfig);
 const db = getFirestore(fireApp);
+
+// Force network connection
+enableNetwork(db).then(() => {
+  console.log("Firestore network enabled");
+}).catch(e => console.log("Network enable error:", e));
 
 const COLORS = ["#4F7EFF","#FF6B6B","#FFB347","#6BCB77","#C77DFF","#00C9A7","#FF8FAB","#06D6A0","#118AB2","#F4A261"];
 const STATUS_CLASS = {"Not Started":"s-not","In Progress":"s-in","Done":"s-done","Blocked":"s-blk"};
@@ -1478,124 +1482,6 @@ setTimeout(()=>{
 },8000);
 </script>
 
-<script>
-// ---- PWA MANIFEST (injected inline) ----
-const manifest = {
-  name: "R Cube Tasks",
-  short_name: "R³ Tasks",
-  description: "Team work allocation and purchase approvals",
-  start_url: ".",
-  display: "standalone",
-  background_color: "#4F7EFF",
-  theme_color: "#4F7EFF",
-  orientation: "portrait",
-  icons: [
-    { src: generateIcon(192), sizes: "192x192", type: "image/png", purpose: "any maskable" },
-    { src: generateIcon(512), sizes: "512x512", type: "image/png", purpose: "any maskable" }
-  ]
-};
 
-function generateIcon(size) {
-  const canvas = document.createElement("canvas");
-  canvas.width = size; canvas.height = size;
-  const ctx = canvas.getContext("2d");
-  // Background
-  const grad = ctx.createLinearGradient(0, 0, size, size);
-  grad.addColorStop(0, "#4F7EFF");
-  grad.addColorStop(1, "#7C3AED");
-  // Rounded rect
-  const r = size * 0.22;
-  ctx.beginPath();
-  ctx.moveTo(r, 0);
-  ctx.lineTo(size - r, 0);
-  ctx.quadraticCurveTo(size, 0, size, r);
-  ctx.lineTo(size, size - r);
-  ctx.quadraticCurveTo(size, size, size - r, size);
-  ctx.lineTo(r, size);
-  ctx.quadraticCurveTo(0, size, 0, size - r);
-  ctx.lineTo(0, r);
-  ctx.quadraticCurveTo(0, 0, r, 0);
-  ctx.closePath();
-  ctx.fillStyle = grad;
-  ctx.fill();
-  // R³ text
-  ctx.fillStyle = "#FFFFFF";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.font = `bold ${size * 0.32}px -apple-system, sans-serif`;
-  ctx.fillText("R³", size * 0.5, size * 0.44);
-  ctx.font = `600 ${size * 0.14}px -apple-system, sans-serif`;
-  ctx.fillStyle = "rgba(255,255,255,0.85)";
-  ctx.fillText("TASKS", size * 0.5, size * 0.68);
-  return canvas.toDataURL("image/png");
-}
-
-// Build and inject manifest blob
-const icon192 = generateIcon(192);
-const icon512 = generateIcon(512);
-const manifestObj = {
-  name: "R Cube Tasks",
-  short_name: "R³ Tasks",
-  description: "Team work allocation and purchase approvals",
-  start_url: window.location.href,
-  display: "standalone",
-  background_color: "#4F7EFF",
-  theme_color: "#4F7EFF",
-  orientation: "portrait-primary",
-  icons: [
-    { src: icon192, sizes: "192x192", type: "image/png", purpose: "any maskable" },
-    { src: icon512, sizes: "512x512", type: "image/png", purpose: "any maskable" }
-  ]
-};
-const blob = new Blob([JSON.stringify(manifestObj)], {type:"application/json"});
-const url = URL.createObjectURL(blob);
-document.getElementById("pwa-manifest").href = url;
-
-// Show install prompt on Android Chrome
-let deferredPrompt = null;
-window.addEventListener("beforeinstallprompt", e => {
-  e.preventDefault();
-  deferredPrompt = e;
-  // Install banner disabled
-});
-
-function showInstallBanner() {
-  if (!deferredPrompt) return;
-  const banner = document.createElement("div");
-  banner.id = "install-banner";
-  banner.style.cssText = `position:fixed;bottom:calc(20px + env(safe-area-inset-bottom));left:16px;right:16px;background:#1A1D23;color:#fff;border-radius:16px;padding:14px 16px;display:flex;align-items:center;gap:12px;z-index:400;box-shadow:0 8px 32px rgba(0,0,0,0.3);animation:slideUp 0.3s ease`;
-  banner.innerHTML = `
-    <div style="width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#4F7EFF,#7C3AED);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;flex-shrink:0">R³</div>
-    <div style="flex:1">
-      <div style="font-size:14px;font-weight:700">Add to Home Screen</div>
-      <div style="font-size:12px;color:#94A3B8;margin-top:2px">Install R Cube Tasks as an app</div>
-    </div>
-    <button onclick="installApp()" style="background:#4F7EFF;color:#fff;border:none;border-radius:10px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">Install</button>
-    <button onclick="document.getElementById('install-banner').remove()" style="background:none;border:none;color:#64748B;font-size:20px;cursor:pointer;line-height:1;padding:0 4px">✕</button>
-  `;
-  document.body.appendChild(banner);
-}
-
-window.installApp = async function() {
-  if (!deferredPrompt) return;
-  deferredPrompt.prompt();
-  const result = await deferredPrompt.userChoice;
-  deferredPrompt = null;
-  const banner = document.getElementById("install-banner");
-  if (banner) banner.remove();
-  if (result.outcome === "accepted") {
-    setTimeout(() => {
-      const t = document.getElementById("toast");
-      if(t){t.textContent="App installed! ✓";t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2500);}
-    }, 500);
-  }
-};
-
-window.addEventListener("appinstalled", () => {
-  deferredPrompt = null;
-  const banner = document.getElementById("install-banner");
-  if (banner) banner.remove();
-});
-</script>
 </body>
 </html>
